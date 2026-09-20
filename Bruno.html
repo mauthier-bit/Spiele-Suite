@@ -64,6 +64,10 @@
   .hintbtn:active{transform:scale(.95);}
   .hinttext{background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.28); border-radius:16px; padding:11px 14px; color:#fff; text-align:center;}
   .hinttext.wish{background:rgba(243,180,41,.18); border-color:rgba(243,180,41,.55);}
+  .hinttext.up{background:rgba(47,162,107,.22); border-color:rgba(47,162,107,.7);}
+  .hinttext.down{background:rgba(94,150,236,.22); border-color:rgba(94,150,236,.7);}
+  .hinttext.help{background:rgba(255,255,255,.1);}
+  .need .big .frac{font-size:.95em;}
 
   /* Karten */
   .card{width:104px; height:150px; border-radius:16px; position:relative; box-shadow:var(--shadow); background:var(--card); overflow:hidden; flex:0 0 auto; border:2px solid var(--cardln);}
@@ -136,9 +140,6 @@
   .name-row input{width:100%; font-family:inherit; font-size:16px; padding:12px 14px; border-radius:14px; border:2px solid #e2d8ef; background:#fff; color:var(--ink);}
   .name-row input:focus{outline:none; border-color:var(--accent);}
 
-  .wishgrid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:16px;}
-  .wishgrid button{height:60px; border-radius:14px; background:var(--wild); color:#fff; font-weight:800; font-size:22px; box-shadow:var(--shadow);}
-  .wishgrid button:active{transform:scale(.95);}
 
   .cpu-panel{background:linear-gradient(180deg,#efe8f5,#e5ddef); color:var(--ink); border-radius:24px; padding:26px; width:100%; max-width:440px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,.5);}
   .cpu-panel .ct{font-size:19px; font-weight:800; min-height:2.6em; margin-bottom:16px; display:flex; align-items:center; justify-content:center;}
@@ -177,15 +178,6 @@
 <div class="toast" id="toast"></div>
 <div class="flash" id="flash"></div>
 
-<!-- Wunsch (Zähler/Nenner) -->
-<div class="overlay" id="wishOverlay">
-  <div class="sheet center-col">
-    <h1 id="wishTitle">Wünsch dir einen Zähler</h1>
-    <p id="wishSub">Der nächste Bruch muss diesen Zähler haben.</p>
-    <div class="wishgrid" id="wishGrid"></div>
-  </div>
-</div>
-
 <!-- Computer -->
 <div class="overlay" id="cpuOverlay">
   <div class="cpu-panel">
@@ -221,16 +213,17 @@
 <div class="overlay" id="helpOverlay">
   <div class="sheet">
     <h1>So geht Bruno</h1>
-    <p>Jede Karte ist ein Bruch – als Zahl, als Rechnung oder als Bild. Ziel: als Erster alle Karten ablegen.</p>
+    <p>Jede Karte ist ein Bruch – als Zahl, als Rechnung oder als Bild. Ziel: als Erster alle Karten ablegen. Gelegt wird <b>der Größe nach</b>.</p>
     <ul class="rules">
-      <li>Eine Bruchkarte passt, wenn sie <b>denselben Wert</b>, <b>denselben Zähler</b> oder <b>denselben Nenner</b> wie die oberste Karte hat.</li>
-      <li>Beispiel: Auf <span class="frac sm"><span class="n">10</span><span class="d">12</span></span> darfst du <span class="frac sm"><span class="n">5</span><span class="d">6</span></span> (gleicher Wert), <span class="frac sm"><span class="n">10</span><span class="d">15</span></span> (gleicher Zähler) oder <span class="frac sm"><span class="n">7</span><span class="d">12</span></span> (gleicher Nenner) legen.</li>
+      <li>Solange es <b>aufwärts ↑</b> geht, darfst du nur Karten legen, die <b>größer oder gleich</b> der obersten sind. Die Kachel neben der Ablage zeigt immer die Richtung und den Bezugswert.</li>
+      <li>Beispiel: Auf <span class="frac sm"><span class="n">5</span><span class="d">6</span></span> passt <span class="frac sm"><span class="n">7</span><span class="d">8</span></span> (größer) oder <span class="frac sm"><span class="n">10</span><span class="d">12</span></span> (gleich), aber nicht <span class="frac sm"><span class="n">3</span><span class="d">4</span></span>.</li>
+      <li><b>Gleicher Wert – noch einmal!</b> Wer eine wertgleiche Karte legt (gekürzt, erweitert, als Dezimalzahl, als Rechnung oder als Bild), darf sofort weiterlegen.</li>
       <li>Eine <b>Rechenkarte</b> zählt als ihr Ergebnis, eine <b>Torte</b> als ihr Anteil.</li>
       <li>Passt nichts, ziehst du eine Karte. Passt sie, darfst du sie sofort legen – sonst beendest du den Zug.</li>
       <li><b>Aktionskarten passen immer:</b></li>
+      <li>· <b>Umkehr ⇅</b> – die Richtung dreht sich: Ab jetzt geht es <b>abwärts ↓</b>, es darf nur noch kleiner oder gleich gelegt werden – bis jemand die nächste Umkehrkarte legt.</li>
       <li>· <b>2 Ziehen</b> – der andere zieht 2 Karten und setzt aus.</li>
-      <li>· <b>Wünsch dir einen Zähler / Nenner</b> – du bestimmst, was als Nächstes gelegt werden muss.</li>
-      <li>· <b>Joker</b> – danach passt jede Karte.</li>
+      <li>· <b>Joker</b> – danach passt jeder Wert; die gelegte Karte ist der neue Bezugswert, die Richtung bleibt.</li>
       <li>Nur noch eine Karte? Dann heißt es <b>Bruno!</b></li>
     </ul>
     <div class="center-col"><button class="btn" id="helpClose">Alles klar</button></div>
@@ -269,7 +262,7 @@
       <button data-set="standard" class="active">Standard</button>
       <button data-set="zufall">Zufällig 🎲</button>
     </div>
-    <p style="margin:8px 0 0; color:#6b6478; font-size:13.5px; font-weight:700;">Diese Brüche sind im Spiel:</p>
+    <p style="margin:8px 0 0; color:#6b6478; font-size:13.5px; font-weight:700;">Diese Brüche sind im Spiel (der Größe nach):</p>
     <div class="setprev" id="setPreview"></div>
     <div class="center-col"><button class="reroll hidden" id="rerollBtn">🎲 Neu würfeln</button></div>
 
@@ -315,9 +308,10 @@
 "use strict";
 
 /* ============ Werte-Sets & Pools ============ */
+const SET_SIZE = 14;          // Werte pro Spiel (Ordnungsspiel: mehr Werte = feinere Vergleiche)
 const STD_SET = {
-  einfach: [[1,2],[1,3],[2,3],[1,4],[3,4],[1,5],[2,5],[3,5],[3,2],[5,4]],
-  schwer:  [[3,8],[5,8],[5,6],[7,6],[7,12],[9,8],[9,4],[7,4],[11,6],[13,12]]
+  einfach: [[1,5],[1,4],[1,3],[2,5],[1,2],[3,5],[2,3],[3,4],[4,5],[6,5],[5,4],[4,3],[3,2],[9,4]],
+  schwer:  [[1,8],[1,6],[3,16],[5,16],[5,12],[7,12],[5,8],[5,6],[7,8],[11,12],[13,12],[9,8],[7,6],[13,8]]
 };
 const POOL = {
   einfach: [[1,2],[1,4],[3,4],[1,5],[2,5],[3,5],[4,5],[1,10],[3,10],[7,10],[9,10],[1,3],[2,3],[3,2],[5,4],[7,4],[5,2],[4,3],[5,3],[9,4],[1,9],[4,9]],
@@ -330,9 +324,8 @@ const OP_SYM = {add:"+", sub:"−", mul:"·", div:":"};
 let BASE_VALUES = STD_SET.einfach.map(x=>x.slice());
 
 const S = {
-  players:[], draw:[], discard:[], need:{type:"free"},
+  players:[], draw:[], discard:[], need:{type:"free"}, dir:1,
   current:0, hasDrawn:false, pending:null,
-  numOpts:[], denOpts:[],
   mode:"duo", level:"einfach", cardset:"standard",
   currentSet: STD_SET.einfach.map(x=>x.slice()),
   opts:{erweitert:true, darstellung:true, dezimal:false, gemischt:false,
@@ -352,6 +345,10 @@ function fDiv(a,b){ return F(a[0]*b[1], a[1]*b[0]); }
 function key(n,d){ const r=F(n,d); return r[0]+"/"+r[1]; }
 function terminates(n,d){ let r=F(n,d)[1]; while(r%2===0)r/=2; while(r%5===0)r/=5; return r===1; }
 function decStr(n,d){ return (n/d).toFixed(6).replace(/0+$/,"").replace(/\.$/,"").replace(".",","); }
+function approxStr(n,d){ return terminates(n,d) ? decStr(n,d) : (n/d).toFixed(2).replace(".",","); }
+function cmpF(a,b){ return a[0]*b[1]-b[0]*a[1]; }      // <0 kleiner, 0 gleich, >0 größer
+function numOf(f){ return f[0]/f[1]; }
+function fStr(f){ return f[1]===1 ? ""+f[0] : f[0]+"/"+f[1]; }
 function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
 function isqrt(n){ const r=Math.round(Math.sqrt(n)); return r*r===n ? r : 0; }
 function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
@@ -361,7 +358,7 @@ let CID=0;
 function mkBruch(rep, value, shown, extra){
   return Object.assign({id:++CID, kind:"bruch", rep, value:value.slice(), shown:shown.slice()}, extra||{});
 }
-function mkAkt(act){ return {id:++CID, kind:"aktion", act, wish:null}; }
+function mkAkt(act){ return {id:++CID, kind:"aktion", act}; }
 
 // Rechenaufgaben, deren Ergebnis exakt = value ist
 function genCalcs(value, ops){
@@ -451,39 +448,38 @@ function valueCards(value, opts){
 function buildDeck(opts){
   let deck=[];
   BASE_VALUES.forEach(v=>{ deck = deck.concat(valueCards(v,opts)); });
-  // Aktionskarten (immer spielbar)
+  // Aktionskarten (passen immer)
   for(let i=0;i<6;i++) deck.push(mkAkt("ziehzwei"));
-  for(let i=0;i<5;i++){ deck.push(mkAkt("wunschZ")); deck.push(mkAkt("wunschN")); deck.push(mkAkt("joker")); }
-  // Wunsch-Optionen (vorhandene Zähler/Nenner)
-  const ns=new Set(), ds=new Set();
-  deck.forEach(c=>{ if(c.kind==="bruch"){ ns.add(c.shown[0]); ds.add(c.shown[1]); } });
-  S.numOpts=[...ns].sort((a,b)=>a-b);
-  S.denOpts=[...ds].sort((a,b)=>a-b);
+  for(let i=0;i<12;i++) deck.push(mkAkt("umkehr"));   // Ventil: ohne Umkehr klemmt es am größten Wert
+  for(let i=0;i<5;i++) deck.push(mkAkt("joker"));
   return shuffle(deck);
 }
 
-/* ============ Regeln ============ */
+/* ============ Regeln (Ordnungsspiel) ============
+   S.dir = +1  -> es geht aufwärts: nur größer oder gleich
+   S.dir = -1  -> es geht abwärts:  nur kleiner oder gleich
+   Gleicher Wert  -> derselbe Spieler darf noch einmal legen.
+   Aktionskarten passen immer; die Umkehrkarte dreht die Richtung.      */
+function isEqualPlay(card, need){
+  return card.kind==="bruch" && need.type==="value" && cmpF(card.value,need.value)===0;
+}
 function canPlay(card, need){
-  if(card.kind==="aktion") return true;                 // 2 Ziehen / Wunsch / Joker: immer
-  if(need.type==="free") return true;
-  if(need.type==="num") return card.shown[0]===need.val;
-  if(need.type==="den") return card.shown[1]===need.val;
-  const t=need.card;                                     // type "card"
-  return fEq(card.value,t.value) || card.shown[0]===t.shown[0] || card.shown[1]===t.shown[1];
+  if(card.kind==="aktion") return true;                 // 2 Ziehen / Umkehr / Joker: immer
+  if(need.type!=="value") return true;                  // nach dem Joker passt jeder Wert
+  const c=cmpF(card.value, need.value);
+  return S.dir>0 ? c>=0 : c<=0;
 }
 function matchReason(card, need){
-  if(need.type==="num") return "Zähler "+need.val+" ✓";
-  if(need.type==="den") return "Nenner "+need.val+" ✓";
-  if(need.type==="card"){
-    const t=need.card;
-    if(!fEq(card.value,t.value)){
-      if(card.shown[0]===t.shown[0]) return "gleicher Zähler "+card.shown[0];
-      if(card.shown[1]===t.shown[1]) return "gleicher Nenner "+card.shown[1];
-    } else if(card.rep!=="grund" || t.rep!=="grund"){
-      return plainVal(card)+" = "+card.value[0]+"/"+card.value[1];
-    }
-  }
-  return "";
+  if(need.type!=="value") return "";
+  const c=cmpF(card.value,need.value), me=fStr(card.value), ref=fStr(need.value);
+  if(c===0) return me+" = "+ref+" – gleicher Wert!";
+  return me+(c>0?" > ":" < ")+ref;
+}
+function whyNot(card, need){
+  if(card.kind==="aktion" || need.type!=="value") return "Diese Karte passt nicht";
+  const me=fStr(card.value), ref=fStr(need.value);
+  return S.dir>0 ? me+" ist kleiner als "+ref+" – es geht aufwärts"
+                 : me+" ist größer als "+ref+" – es geht abwärts";
 }
 
 /* ============ Darstellung ============ */
@@ -514,8 +510,8 @@ function torteHTML(card,big){
   }
   return pieSVG(shaded,total,size);
 }
-function actIcon(act){ return {ziehzwei:"+2", wunschZ:"Z?", wunschN:"N?", joker:"★"}[act]; }
-function actText(act){ return {ziehzwei:"2 Ziehen", wunschZ:"Wünsch dir\neinen Zähler", wunschN:"Wünsch dir\neinen Nenner", joker:"Joker"}[act]; }
+function actIcon(act){ return {ziehzwei:"+2", umkehr:"⇅", joker:"★"}[act]; }
+function actText(act){ return {ziehzwei:"2 Ziehen", umkehr:"Umkehr\ngrößer ↔ kleiner", joker:"Joker"}[act]; }
 
 // Basis einer Potenz je nach Einstellung als Bruch / Dezimalzahl / gemischte Zahl
 function baseDisplay(base){
@@ -584,18 +580,20 @@ function brandSmall(){ return `<span class="brand" style="font-size:20px;"><span
 function hintTile(){
   const n=S.need;
   const wrap=document.createElement("div"); wrap.className="need";
-  if(n.type!=="card"){                                   // Wunsch/Joker: angesagte Info, nicht selbst erkennbar
-    const inner = n.type==="num" ? `<div class="g">Gewünscht</div><div class="big">Zähler ${n.val}</div>`
-                : n.type==="den" ? `<div class="g">Gewünscht</div><div class="big">Nenner ${n.val}</div>`
-                : `<div class="big">Joker</div><div class="sub">alles passt</div>`;
-    wrap.innerHTML=`<div class="hinttext wish">${inner}</div>`;
+  if(n.type!=="value"){                                  // direkt nach dem Joker
+    wrap.innerHTML=`<div class="hinttext wish"><div class="big">Joker</div><div class="sub">Jeder Wert passt – die gelegte Karte ist danach der neue Bezugswert.</div></div>`;
     return wrap;
   }
-  // Normale Karte: Schüler erkennen selbst, was passt – Hinweis nur auf Tipp
-  const c=n.card;
-  wrap.innerHTML=`<button class="hintbtn">💡 Hinweis</button>`+
-    `<div class="hinttext hidden"><div class="g">Passt</div><div class="big">Wert ${c.value[0]}/${c.value[1]}</div><div class="sub">oder Zähler ${c.shown[0]} · Nenner ${c.shown[1]}</div></div>`;
-  const t=wrap.querySelector(".hinttext"), btn=wrap.querySelector(".hintbtn");
+  const up=S.dir>0, v=n.value, exact=terminates(v[0],v[1]);
+  wrap.innerHTML=
+    `<div class="hinttext ${up?"up":"down"}">`+
+      `<div class="g">${up?"aufwärts ↑":"abwärts ↓"}</div>`+
+      `<div class="big">${up?"≥":"≤"} ${fracHTML(v[0],v[1],"sm")}</div>`+
+      `<div class="sub">${up?"größer oder gleich legen":"kleiner oder gleich legen"}</div>`+
+    `</div>`+
+    `<button class="hintbtn">💡 Hinweis</button>`+
+    `<div class="hinttext help hidden"><div class="sub">${fracHTML(v[0],v[1],"sm")} ${exact?"=":"≈"} ${approxStr(v[0],v[1])}<br>Gleicher Wert? Dann darfst du gleich nochmal.</div></div>`;
+  const t=wrap.querySelector(".hinttext.help"), btn=wrap.querySelector(".hintbtn");
   btn.addEventListener("click",()=>{ const hidden=t.classList.toggle("hidden"); btn.textContent=hidden?"💡 Hinweis":"Hinweis ausblenden"; });
   return wrap;
 }
@@ -633,8 +631,10 @@ function render(){
   const hz=document.createElement("div"); hz.className="handzone";
   const tb=document.createElement("div"); tb.className="turnbar";
   const anyPlay=me.hand.some(c=>canPlay(c,S.need));
+  const dirTxt=S.need.type!=="value" ? "Jeder Wert passt."
+             : (S.dir>0 ? "Lege größer oder gleich." : "Lege kleiner oder gleich.");
   const hint=S.hasDrawn ? "Gezogen – lege eine passende Karte oder beende den Zug."
-                        : (anyPlay ? "Tippe eine Karte zum Ablegen." : "Keine passt – tippe den Nachziehstapel.");
+                        : (anyPlay ? dirTxt : "Keine passt – tippe den Nachziehstapel.");
   tb.innerHTML=`<span class="me">${escapeHtml(me.name)}</span><span class="hint">${hint}</span>`;
   if(S.hasDrawn){ const end=document.createElement("button"); end.className="btn small"; end.textContent="Zug beenden"; end.addEventListener("click",()=>endTurn(false)); tb.appendChild(end); }
   hz.appendChild(tb);
@@ -654,8 +654,13 @@ function newGame(){
   const p2 = S.mode==="solo" ? "Computer 🤖" : (S.names[1]||"Spieler 2");
   S.players=[ {name:S.names[0]||"Spieler 1", hand:[]}, {name:p2, hand:[]} ];
   for(let i=0;i<7;i++){ S.players[0].hand.push(S.draw.pop()); S.players[1].hand.push(S.draw.pop()); }
-  let idx=S.draw.findIndex(c=>c.kind==="bruch"); if(idx<0) idx=S.draw.length-1;
-  const first=S.draw.splice(idx,1)[0]; S.discard.push(first); S.need={type:"card",card:first};
+  // Startkarte möglichst aus der Mitte der Werte – sonst ist sofort Schluss nach oben
+  const mid=[...BASE_VALUES].sort((a,b)=>numOf(a)-numOf(b))[Math.floor(BASE_VALUES.length/2)];
+  const cand=S.draw.map((c,i)=>[c,i]).filter(([c])=>c.kind==="bruch")
+              .sort((a,b)=>Math.abs(numOf(a[0].value)-numOf(mid))-Math.abs(numOf(b[0].value)-numOf(mid)));
+  let idx = cand.length ? pick(cand.slice(0,Math.min(6,cand.length)))[1] : S.draw.length-1;
+  const first=S.draw.splice(idx,1)[0]; S.discard.push(first);
+  S.need={type:"value", value:first.value.slice()}; S.dir=1;
   S.current=0; S.hasDrawn=false; S.phase="turn"; render();
 }
 function refillDrawIfNeeded(){ if(S.draw.length===0 && S.discard.length>1){ const t=S.discard.pop(); S.draw=shuffle(S.discard); S.discard=[t]; } }
@@ -667,28 +672,30 @@ function onDraw(){
   if(!S.draw.length){ flash("Kein Nachziehstapel mehr"); endTurn(false); return; }
   const me=S.players[S.current]; me.hand.push(S.draw.pop()); S.hasDrawn=true;
   const drawn=me.hand[me.hand.length-1]; render();
-  if(!canPlay(drawn,S.need)) flash("Gezogene Karte passt nicht");
+  if(!canPlay(drawn,S.need)) flash(whyNot(drawn,S.need));
 }
 function onPlay(id){
   const me=S.players[S.current];
   const i=me.hand.findIndex(c=>c.id===id); if(i<0) return;
   const card=me.hand[i];
-  if(!canPlay(card,S.need)){ flash("Diese Karte passt nicht"); return; }
+  if(!canPlay(card,S.need)){ flash(whyNot(card,S.need)); return; }
+  const again=isEqualPlay(card,S.need);
   const reason=card.kind==="bruch" ? matchReason(card,S.need) : "";
   me.hand.splice(i,1); S.discard.push(card);
-  if(card.kind==="bruch"){ S.need={type:"card",card}; if(reason) toast(reason,true); afterPlay(card); return; }
+  if(card.kind==="bruch"){ S.need={type:"value", value:card.value.slice()}; if(reason) toast(reason,true); afterPlay(card,again); return; }
   // Aktionen
-  if(card.act==="joker"){ S.need={type:"free"}; afterPlay(card); return; }
+  if(card.act==="joker"){ S.need={type:"free"}; flash("Joker – jeder Wert passt"); afterPlay(card); return; }
+  if(card.act==="umkehr"){ S.dir=-S.dir; flash(S.dir>0?"Umkehr – jetzt wieder größer ↑":"Umkehr – jetzt kleiner ↓"); afterPlay(card); return; }
   if(card.act==="ziehzwei"){ afterPlay(card); return; }
-  if(card.act==="wunschZ"||card.act==="wunschN"){ S.pending=card; openWish(card.act==="wunschZ"?"num":"den"); return; }
 }
-function afterPlay(card){
+function afterPlay(card, again){
   const me=S.players[S.current];
   if(me.hand.length===0) return win();
   if(me.hand.length===1) brunoBanner();
   if(card.kind==="aktion" && card.act==="ziehzwei"){
     drawCards(S.players[1-S.current],2); flash(`${S.players[1-S.current].name} zieht 2 & setzt aus`); return endTurn(true);
   }
+  if(again){ flash("Gleicher Wert – du darfst nochmal"); return endTurn(true); }
   return endTurn(false);
 }
 function endTurn(keepTurn){
@@ -700,18 +707,6 @@ function endTurn(keepTurn){
 }
 function win(){ S.phase="gameover"; $("#winName").textContent=S.players[S.current].name; $("#winSub").textContent="Alle Karten abgelegt – super gerechnet!"; show("winOverlay"); }
 
-/* ---- Wunsch ---- */
-function openWish(kind){                 // kind: "num" | "den"
-  $("#wishTitle").textContent = kind==="num" ? "Wünsch dir einen Zähler" : "Wünsch dir einen Nenner";
-  $("#wishSub").textContent   = kind==="num" ? "Der nächste Bruch muss diesen Zähler haben." : "Der nächste Bruch muss diesen Nenner haben.";
-  const grid=$("#wishGrid"); grid.innerHTML="";
-  (kind==="num"?S.numOpts:S.denOpts).forEach(v=>{
-    const b=document.createElement("button"); b.textContent=v; b.addEventListener("click",()=>applyWish(kind,v)); grid.appendChild(b);
-  });
-  show("wishOverlay");
-}
-function applyWish(kind,val){ hide("wishOverlay"); S.need={type:kind,val}; S.pending=null; flash(kind==="num"?`Zähler ${val} gewünscht`:`Nenner ${val} gewünscht`); afterPlay({kind:"aktion",act:"wunsch"}); }
-
 /* ---- Übergabe ---- */
 function showHandoff(){ app.innerHTML=""; $("#handoffName").textContent="an "+S.players[S.current].name; show("handoffOverlay"); }
 
@@ -721,15 +716,28 @@ function setCpuDelay(x){ CPU_DELAY=x; }
 function cpuChooseCard(hand){
   const playable=hand.filter(c=>canPlay(c,S.need)); if(!playable.length) return null;
   const bruch=playable.filter(c=>c.kind==="bruch");
-  const pool=bruch.length?bruch:playable;       // Aktionen aufheben, wenn Bruch geht
-  return pick(pool);
-}
-function cpuWish(kind){
-  const opts = kind==="num"?S.numOpts:S.denOpts;
-  const cpu=S.players[1];
-  const counts={}; cpu.hand.forEach(c=>{ if(c.kind==="bruch"){ const v=kind==="num"?c.shown[0]:c.shown[1]; counts[v]=(counts[v]||0)+1; } });
-  const have=Object.keys(counts).map(Number);
-  return have.length ? have.sort((a,b)=>counts[b]-counts[a])[0] : pick(opts);
+  const acts=playable.filter(c=>c.kind==="aktion");
+  if(S.need.type==="value"){
+    const ref=numOf(S.need.value);
+    // 1. gleicher Wert -> Zusatzzug
+    const eq=bruch.filter(c=>cmpF(c.value,S.need.value)===0);
+    if(eq.length) return pick(eq);
+    // 2. Umkehr, wenn die eigene Hand überwiegend in der Gegenrichtung liegt
+    const um=acts.filter(c=>c.act==="umkehr");
+    if(um.length){
+      const mit=hand.filter(c=>c.kind==="bruch" && (S.dir>0 ? numOf(c.value)>ref : numOf(c.value)<ref)).length;
+      const gegen=hand.filter(c=>c.kind==="bruch" && (S.dir>0 ? numOf(c.value)<ref : numOf(c.value)>ref)).length;
+      if(!bruch.length || gegen>mit+2) return um[0];   // Umkehr möglichst aufheben
+    }
+    // 3. kleinster Schritt in der laufenden Richtung – große Sprünge aufheben
+    if(bruch.length){
+      bruch.sort((a,b)=>Math.abs(numOf(a.value)-ref)-Math.abs(numOf(b.value)-ref));
+      return bruch[0];
+    }
+  }
+  if(bruch.length) return pick(bruch);
+  const zwei=acts.filter(c=>c.act==="ziehzwei");
+  return zwei.length ? zwei[0] : pick(acts.length?acts:playable);
 }
 function updateCpu(msg){
   $("#cpuMsg").textContent=msg;
@@ -751,12 +759,16 @@ function cpuStep(){
     clearTimeout(cpuTimer); cpuTimer=setTimeout(canPlay(drawn,S.need)?cpuStep:cpuFinish,CPU_DELAY); return;
   }
   const i=cpu.hand.indexOf(card); cpu.hand.splice(i,1); S.discard.push(card);
-  let again=false, pass=true;
-  if(card.kind==="bruch"){ S.need={type:"card",card}; updateCpu(`🤖 Computer legt ${plainVal(card)}`); }
-  else if(card.act==="joker"){ S.need={type:"free"}; updateCpu("🤖 Computer legt Joker"); }
-  else if(card.act==="ziehzwei"){ drawCards(S.players[0],2); again=true; pass=false; updateCpu("🤖 Computer legt 2 Ziehen – du ziehst 2"); }
-  else if(card.act==="wunschZ"){ const v=cpuWish("num"); S.need={type:"num",val:v}; updateCpu(`🤖 Computer wünscht Zähler ${v}`); }
-  else if(card.act==="wunschN"){ const v=cpuWish("den"); S.need={type:"den",val:v}; updateCpu(`🤖 Computer wünscht Nenner ${v}`); }
+  let again=false;
+  if(card.kind==="bruch"){
+    const eq=isEqualPlay(card,S.need), rel=matchReason(card,S.need);
+    S.need={type:"value", value:card.value.slice()};
+    updateCpu(`🤖 Computer legt ${plainVal(card)}${rel?" – "+rel:""}`);
+    if(eq) again=true;
+  }
+  else if(card.act==="joker"){ S.need={type:"free"}; updateCpu("🤖 Computer legt Joker – jeder Wert passt"); }
+  else if(card.act==="umkehr"){ S.dir=-S.dir; updateCpu("🤖 Computer dreht um – jetzt "+(S.dir>0?"größer ↑":"kleiner ↓")); }
+  else if(card.act==="ziehzwei"){ drawCards(S.players[0],2); again=true; updateCpu("🤖 Computer legt 2 Ziehen – du ziehst 2"); }
   if(cpu.hand.length===0) return cpuWin();
   if(cpu.hand.length===1) brunoBanner();
   clearTimeout(cpuTimer); cpuTimer=setTimeout(again?cpuStep:cpuFinish,CPU_DELAY);
@@ -773,7 +785,7 @@ function show(id){ $("#"+id).classList.add("show"); }
 function hide(id){ $("#"+id).classList.remove("show"); }
 
 /* ============ Einstellungen ============ */
-function openStart(){ clearTimeout(cpuTimer); ["winOverlay","helpOverlay","handoffOverlay","wishOverlay","cpuOverlay"].forEach(hide); syncSettings(); show("startOverlay"); }
+function openStart(){ clearTimeout(cpuTimer); ["winOverlay","helpOverlay","handoffOverlay","cpuOverlay"].forEach(hide); syncSettings(); show("startOverlay"); }
 function syncSettings(){
   document.querySelectorAll("#startOverlay .opt").forEach(o=>{ const k=o.dataset.opt; const on=k==="highlight"?S.opts.highlight:S.opts[k]; o.querySelector(".switch").classList.toggle("on",!!on); });
   document.querySelectorAll("#startOverlay .chk").forEach(c=>c.classList.toggle("on", !!S.opts.ops[c.dataset.op]));
@@ -786,7 +798,8 @@ function applyModeUI(){ $("#p2name").classList.toggle("hidden", S.mode==="solo")
 function applyLevelUI(){ $("#levelHint").textContent = S.level==="einfach" ? "Einfache Brüche: Halbe, Drittel, Viertel, Fünftel …" : "Schwierigere Brüche: Sechstel, Achtel, Zwölftel, unechte Brüche …"; }
 function refreshPreview(){
   const prev=$("#setPreview"); prev.innerHTML="";
-  S.currentSet.forEach(([n,d])=>{ const c=document.createElement("span"); c.className="chip"; c.innerHTML=fracHTML(n,d,"sm"); prev.appendChild(c); });
+  [...S.currentSet].sort((a,b)=>numOf(a)-numOf(b))
+    .forEach(([n,d])=>{ const c=document.createElement("span"); c.className="chip"; c.innerHTML=fracHTML(n,d,"sm"); prev.appendChild(c); });
   $("#rerollBtn").classList.toggle("hidden", S.cardset!=="zufall");
 }
 function currentStd(){ return STD_SET[S.level].map(x=>x.slice()); }
@@ -795,9 +808,9 @@ function randomSet(level){
   const improper=poolL.filter(([n,d])=>n>d), term=poolL.filter(([n,d])=>terminates(n,d));
   const chosen=[], used=new Set();
   const add=c=>{ const k=key(c[0],c[1]); if(!used.has(k)){ used.add(k); chosen.push(c); } };
-  shuffle(improper).slice(0,2).forEach(add); shuffle(term).slice(0,3).forEach(add);
-  shuffle(poolL).forEach(c=>{ if(chosen.length<10) add(c); });
-  return shuffle(chosen).slice(0,10);
+  shuffle(improper).slice(0,3).forEach(add); shuffle(term).slice(0,4).forEach(add);
+  shuffle(poolL).forEach(c=>{ if(chosen.length<SET_SIZE) add(c); });
+  return shuffle(chosen).slice(0,SET_SIZE);
 }
 function updateSetForMode(){ S.currentSet = S.cardset==="zufall" ? randomSet(S.level) : currentStd(); refreshPreview(); }
 
@@ -829,7 +842,7 @@ syncSettings();
 let lastTouch=0;
 document.addEventListener("touchend",e=>{ const n=Date.now(); if(n-lastTouch<300) e.preventDefault(); lastTouch=n; },{passive:false});
 
-window.__BRUNO__={S,canPlay,key,F,fEq,fAdd,fSub,fMul,fDiv,terminates,decStr,buildDeck,valueCards,genCalcs,genTortes,genPowers,isqrt,randomSet,STD_SET,POOL,setCpuDelay,plainVal};
+window.__BRUNO__={S,canPlay,isEqualPlay,cmpF,numOf,fStr,matchReason,whyNot,key,F,fEq,fAdd,fSub,fMul,fDiv,terminates,decStr,buildDeck,valueCards,genCalcs,genTortes,genPowers,isqrt,randomSet,STD_SET,POOL,SET_SIZE,setCpuDelay,plainVal,cpuChooseCard};
 </script>
 </body>
 </html>
