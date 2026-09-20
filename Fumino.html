@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Fumino – Funktions-Domino</title>
+<style>
+  :root{
+    --ink:#20263a; --ink2:#4a5169; --line:#e4e2da; --bg:#f4f1ea; --card:#fffdf7;
+    --gold:#c69b3f; --gold-d:#a67f2b; --tile:#fbf7ec; --tile-edge:#ded7c4;
+    --curve:#2c5fd6; --grid:#e7e9ef; --axis:#9aa1b4; --good:#2e8b5c; --bad:#d1523f;
+    --sel:#c69b3f; --shadow:0 3px 10px rgba(40,34,20,.13);
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    color:var(--ink); background:var(--bg); overflow:hidden;
+    -webkit-user-select:none; user-select:none; touch-action:manipulation;
+  }
+  .screen{position:fixed; inset:0; display:none; flex-direction:column; padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+  .screen.on{display:flex;}
+
+  /* ---------- Domino-Logo ---------- */
+  .logo{display:inline-flex; align-items:center; gap:.55rem; font-weight:800; letter-spacing:.5px;}
+  .logo .domino{display:inline-flex; width:64px; height:34px; border-radius:7px; background:var(--tile);
+    border:1.5px solid var(--tile-edge); box-shadow:var(--shadow); overflow:hidden;}
+  .logo .domino .h{flex:1; display:flex; align-items:center; justify-content:center;}
+  .logo .domino .h.l{border-right:1.5px solid var(--tile-edge); background:linear-gradient(180deg,#fbedcb,#f3dfa6);}
+  .logo .domino svg{width:26px; height:26px;}
+  .logo .domino .t{font-size:11px; font-weight:800; color:var(--gold-d);}
+  .logo .word{font-size:1.9rem;}
+  .logo .word b{color:var(--gold-d);}
+
+  /* ---------- Startbildschirm ---------- */
+  #start{overflow:auto; align-items:center;}
+  .startwrap{width:100%; max-width:720px; margin:auto; padding:22px 18px 40px;}
+  .startwrap header{text-align:center; margin-bottom:8px;}
+  .tag{color:var(--ink2); font-size:1rem; margin:.35rem 0 1.3rem;}
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow);
+    padding:16px 16px 18px; margin-bottom:16px;}
+  .panel h3{margin:.1rem 0 .7rem; font-size:.82rem; text-transform:uppercase; letter-spacing:.09em; color:var(--ink2);}
+  .seg{display:flex; gap:8px; flex-wrap:wrap;}
+  .seg button{flex:1 1 auto; min-width:64px; padding:12px 10px; border-radius:11px; border:1.5px solid var(--line);
+    background:#fff; color:var(--ink); font-size:1rem; font-weight:650; cursor:pointer; transition:.12s;}
+  .seg button.sel{background:var(--gold); border-color:var(--gold-d); color:#3a2c07; box-shadow:0 2px 6px rgba(180,140,40,.35);}
+  .seg button:disabled{opacity:.4; cursor:not-allowed;}
+  .checks{display:grid; gap:9px;}
+  .chk{display:flex; align-items:center; gap:12px; padding:12px 13px; border:1.5px solid var(--line);
+    border-radius:12px; background:#fff; cursor:pointer;}
+  .chk.on{border-color:var(--gold-d); background:#fdf7e8;}
+  .chk .box{width:24px; height:24px; border-radius:7px; border:2px solid var(--tile-edge); flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; font-size:15px; color:#fff; background:#fff;}
+  .chk.on .box{background:var(--gold); border-color:var(--gold-d);}
+  .chk .meta{display:flex; flex-direction:column;}
+  .chk .meta .name{font-weight:680;}
+  .chk .meta .ex{font-size:.82rem; color:var(--ink2);}
+  .poolinfo{font-size:.9rem; color:var(--ink2); text-align:center; margin-top:2px; min-height:1.2em;}
+  .startbtn{width:100%; padding:16px; font-size:1.2rem; font-weight:800; border:none; border-radius:14px;
+    background:var(--gold); color:#3a2c07; cursor:pointer; box-shadow:0 4px 12px rgba(180,140,40,.4);}
+  .startbtn:disabled{opacity:.45; cursor:not-allowed; box-shadow:none;}
+  .hint{font-size:.86rem; color:var(--bad); text-align:center; margin-top:8px; min-height:1.1em;}
+
+  /* ---------- Spielbildschirm ---------- */
+  #game{background:var(--bg);}
+  .topbar{display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--line);
+    background:var(--card);}
+  .topbar .logo .word{font-size:1.25rem;}
+  .topbar .logo .domino{width:46px; height:26px;}
+  .topbar .logo .domino svg{width:19px; height:19px;}
+  .topbar .logo .domino .t{font-size:8px;}
+  .turnbadge{margin-left:auto; display:flex; align-items:center; gap:8px; font-weight:750; font-size:1rem;
+    padding:6px 12px; border-radius:999px; background:#fff; border:1.5px solid var(--line);}
+  .turnbadge .dot{width:12px; height:12px; border-radius:50%;}
+  .p0{--pc:#2c5fd6;} .p1{--pc:#d98324;} .turnbadge .dot{background:var(--pc,#888);}
+  .iconbtn{padding:9px 13px; border-radius:10px; border:1.5px solid var(--line); background:#fff; font-weight:680;
+    font-size:.95rem; cursor:pointer; color:var(--ink);}
+  .iconbtn.warn{border-color:#e6c3bd; color:var(--bad);}
+
+  .boardwrap{flex:1; display:flex; flex-direction:column; min-height:0;}
+  .endshint{display:flex; justify-content:space-between; padding:8px 16px 2px; gap:10px;}
+  .endshint .pill{font-size:.82rem; color:var(--ink2); background:#fff; border:1px solid var(--line);
+    border-radius:999px; padding:5px 11px;}
+  .board{flex:1; min-height:0; overflow-x:auto; overflow-y:hidden; display:flex; align-items:center;
+    gap:0; padding:14px 16px; scroll-behavior:smooth;}
+  .board .emptyboard{margin:auto; color:var(--ink2); text-align:center; font-size:1.05rem; line-height:1.5;}
+
+  /* ---------- Domino-Stein ---------- */
+  .stone{flex:0 0 auto; display:flex; background:var(--tile); border:1.6px solid var(--tile-edge);
+    border-radius:12px; box-shadow:var(--shadow); overflow:hidden; position:relative;}
+  .stone .cell{position:relative; display:flex; align-items:center; justify-content:center;}
+  .stone .cell.graph{padding:4px; background:#fff;}
+  .stone .cell.term{padding:6px 10px; background:var(--tile); border-left:2px solid var(--tile-edge);}
+  .stone .term-txt{font-size:1.4rem; line-height:1.25; text-align:center; color:var(--ink); white-space:nowrap;}
+  .stone .fg-svg{display:block; width:100%; height:100%; max-width:100%; max-height:100%;}
+  .board .stone{--w:150px;}
+  .stone.board-s{height:240px;}
+  .stone.board-s .cell.graph{width:240px;}
+  .stone.board-s .cell.term{min-width:270px; padding-left:20px; padding-right:20px;}
+  .stone .zoom{position:absolute; top:5px; right:5px; width:30px; height:30px; border-radius:8px;
+    background:rgba(255,255,255,.9); border:1px solid var(--tile-edge); display:flex; align-items:center;
+    justify-content:center; font-size:16px; color:var(--ink2); z-index:3;}
+  .stone .cell.open::after{content:""; position:absolute; inset:0; box-shadow:inset 0 0 0 3px var(--gold);
+    border-radius:8px; animation:pulse 1.3s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:.35;}50%{opacity:1;}}
+
+  /* Drop-Ziele an den Enden */
+  .droptarget{flex:0 0 auto; width:92px; align-self:center; height:210px; margin:0 8px; border-radius:14px;
+    border:3px dashed transparent; display:flex; align-items:center; justify-content:center; color:var(--gold-d);
+    font-size:.95rem; text-align:center; font-weight:700; opacity:0; transition:.15s; pointer-events:none;}
+  .droptarget.active{opacity:1; border-color:var(--gold); background:#fdf3d8; pointer-events:auto; cursor:pointer;
+    animation:pulse 1.3s ease-in-out infinite;}
+
+  /* ---------- Hand ---------- */
+  .handbar{border-top:1px solid var(--line); background:var(--card);}
+  .handhdr{display:flex; align-items:center; gap:10px; padding:8px 16px 0; font-size:.86rem; color:var(--ink2);}
+  .handhdr .grow{flex:1;}
+  .hand{display:flex; gap:12px; overflow-x:auto; padding:12px 16px 16px; align-items:center; min-height:200px;}
+  .hand .stone{--h:185px; height:185px; cursor:pointer;}
+  .hand .stone .cell.graph{width:185px;}
+  .hand .stone .cell.term{min-width:210px;}
+  .hand .stone.sel{outline:3px solid var(--sel); outline-offset:2px;}
+  .hand .stone.playable{box-shadow:0 0 0 2px var(--good), var(--shadow);}
+  .hand .stone .term-txt{font-size:1.25rem;}
+
+  /* ---------- Overlays ---------- */
+  .overlay{position:fixed; inset:0; background:rgba(28,24,16,.78); display:none; align-items:center;
+    justify-content:center; z-index:50; padding:20px;}
+  .overlay.on{display:flex;}
+  .card2{background:var(--card); border-radius:20px; box-shadow:0 20px 50px rgba(0,0,0,.35); padding:26px 24px;
+    max-width:460px; width:100%; text-align:center;}
+  .card2 h2{margin:.1rem 0 .5rem; font-size:1.6rem;}
+  .card2 p{color:var(--ink2); margin:.3rem 0 1.2rem; font-size:1.05rem;}
+  .card2 .big{padding:15px 20px; font-size:1.15rem; font-weight:800; border:none; border-radius:13px;
+    background:var(--gold); color:#3a2c07; cursor:pointer; width:100%;}
+  .card2 .ghost{margin-top:10px; background:#fff; border:1.5px solid var(--line); color:var(--ink);}
+
+  #zoom .zbox{background:#fff; border-radius:18px; padding:16px; max-width:92vw; max-height:88vh; overflow:auto;}
+  #zoom .stone{height:min(52vh,340px);}
+  #zoom .stone .cell.graph{width:min(52vh,340px);}
+  #zoom .stone .cell.term{min-width:min(60vw,380px);}
+  #zoom .stone .term-txt{font-size:1.5rem; white-space:normal;}
+  #zoom .close{margin-top:14px; width:100%;}
+
+  /* Toast */
+  #toast{position:fixed; left:50%; bottom:150px; transform:translateX(-50%) translateY(20px); z-index:60;
+    background:var(--ink); color:#fff; padding:12px 18px; border-radius:12px; font-weight:650; font-size:1rem;
+    opacity:0; transition:.2s; pointer-events:none; max-width:88vw; text-align:center;}
+  #toast.on{opacity:1; transform:translateX(-50%) translateY(0);}
+  #toast.bad{background:var(--bad);} #toast.good{background:var(--good);}
+
+  /* Bruch im Term */
+  .frac{display:inline-flex; flex-direction:column; vertical-align:middle; text-align:center; line-height:1;
+    margin:0 2px; transform:translateY(-1px);}
+  .frac .fnum{padding:0 4px; border-bottom:1.6px solid currentColor;}
+  .frac .fden{padding:1px 4px 0;}
+  sup{font-size:.72em;}
+
+  /* Graph-Stil (SVG) */
+  .fg-svg .fg-grid{stroke:var(--grid); stroke-width:1;}
+  .fg-svg .fg-axis{stroke:var(--axis); stroke-width:1.4;}
+  .fg-svg .fg-curve{fill:none; stroke:var(--curve); stroke-width:2.6; stroke-linecap:round; stroke-linejoin:round;}
+  .fg-svg .fg-lab{fill:#b9bccb; font-size:8px; text-anchor:middle; font-family:inherit;}
+  .fg-svg .fg-zero{fill:#e03131; stroke:#fff; stroke-width:1.5;}
+
+  @media (max-width:520px){
+    .logo .word{font-size:1.55rem;}
+    .board .stone.board-s{height:190px;}
+    .board .stone.board-s .cell.graph{width:190px;} .board .stone.board-s .cell.term{min-width:200px;}
+    .hand .stone{height:150px;} .hand .stone .cell.graph{width:150px;} .hand .stone .cell.term{min-width:170px;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= START ================= -->
+<section id="start" class="screen on">
+  <div class="startwrap">
+    <header>
+      <div class="logo">
+        <span class="domino"><span class="h l" id="logoGraph"></span><span class="h"><span class="t">f(x)</span></span></span>
+        <span class="word">Fu<b>mino</b></span>
+      </div>
+      <div class="tag">Funktions-Domino &middot; Term und passenden Graphen anlegen</div>
+    </header>
+
+    <div class="panel">
+      <h3>Jahrgangsstufe</h3>
+      <div class="seg" id="segGrade">
+        <button data-v="8" class="sel">8. Klasse</button>
+        <button data-v="9">9. Klasse</button>
+        <button data-v="10">10. Klasse</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Funktionsarten</h3>
+      <div class="checks" id="typeChecks"></div>
+    </div>
+
+    <div class="panel">
+      <h3>Modus</h3>
+      <div class="seg" id="segMode">
+        <button data-v="vs" class="sel">Gegeneinander</button>
+        <button data-v="coop">Kooperativ</button>
+      </div>
+      <h3 style="margin-top:16px;">Schwierigkeit</h3>
+      <div class="seg" id="segDiff">
+        <button data-v="1" class="sel">Stufe 1</button>
+        <button data-v="2">Stufe 2</button>
+      </div>
+      <h3 style="margin-top:16px;">Umfang</h3>
+      <div class="seg" id="segCount">
+        <button data-v="8" class="sel">8 Steine</button>
+        <button data-v="12">12 Steine</button>
+        <button data-v="16">16 Steine</button>
+      </div>
+      <div class="poolinfo" id="poolInfo"></div>
+    </div>
+
+    <button class="startbtn" id="startBtn">Spiel starten</button>
+    <div class="hint" id="startHint"></div>
+  </div>
+</section>
+
+<!-- ================= SPIEL ================= -->
+<section id="game" class="screen">
+  <div class="topbar">
+    <div class="logo">
+      <span class="domino"><span class="h l" id="logoGraph2"></span><span class="h"><span class="t">f(x)</span></span></span>
+      <span class="word">Fu<b>mino</b></span>
+    </div>
+    <div class="turnbadge" id="turnBadge"><span class="dot"></span><span id="turnText">Kooperativ</span></div>
+    <button class="iconbtn" id="hintBtn">Tipp</button>
+    <button class="iconbtn warn" id="passBtn">Passen</button>
+    <button class="iconbtn" id="newsetBtn" title="Neues Funktionenset">&#127922;&#8202;Neues Set</button>
+    <button class="iconbtn" id="menuBtn">Menü</button>
+  </div>
+
+  <div class="boardwrap">
+    <div class="endshint">
+      <span class="pill" id="pillLeft">Linkes Ende</span>
+      <span class="pill" id="pillRight">Rechtes Ende</span>
+    </div>
+    <div class="board" id="board"></div>
+  </div>
+
+  <div class="handbar">
+    <div class="handhdr">
+      <span id="handLabel">Deine Steine</span>
+      <span class="grow"></span>
+      <span id="handCount"></span>
+    </div>
+    <div class="hand" id="hand"></div>
+  </div>
+</section>
+
+<!-- ================= WEITERGEBEN ================= -->
+<div class="overlay" id="pass">
+  <div class="card2">
+    <h2 id="passTitle">Weitergeben</h2>
+    <p id="passSub">Gib das iPad an den nächsten Spieler.</p>
+    <button class="big" id="passReady">Bereit</button>
+  </div>
+</div>
+
+<!-- ================= GEWONNEN ================= -->
+<div class="overlay" id="win">
+  <div class="card2">
+    <h2 id="winTitle">Geschafft!</h2>
+    <p id="winSub"></p>
+    <button class="big" id="winAgain">Nochmal</button>
+    <button class="big ghost" id="winMenu">Einstellungen</button>
+  </div>
+</div>
+
+<!-- ================= ZOOM ================= -->
+<div class="overlay" id="zoom">
+  <div class="zbox">
+    <div id="zoomStone"></div>
+    <button class="big close" id="zoomClose">Schließen</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* =========================================================================
+   FUMINO – Kernlogik (Funktions-Domino)
+   Reine, testbare Funktionen: RNG, Funktionsfamilien, Term-/Graph-Rendering,
+   Aufbau eines eindeutig lösbaren Rings.
+   ========================================================================= */
+(function (root) {
+  "use strict";
+
+  /* ---------------------------- RNG & Helfer ---------------------------- */
+  function mulberry32(a) {
+    return function () {
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function makeRng(seed) { return mulberry32(seed >>> 0); }
+  function shuffle(arr, rnd) {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  }
+  function sampleDistinct(pool, n, rnd) {
+    return shuffle(pool, rnd).slice(0, n);
+  }
+
+  /* --------------------------- Zahlformatierung ------------------------- */
+  const MINUS = "\u2212"; // echtes Minus −
+  const MID = "\u00B7";   // Malpunkt ·
+  function num(v) {
+    let s = (Math.round(v * 10000) / 10000).toString();
+    s = s.replace(".", ",").replace("-", MINUS);
+    return s;
+  }
+  function signTerm(t) {
+    if (Math.abs(t) < 1e-9) return "";
+    return t > 0 ? " + " + num(t) : " " + MINUS + " " + num(-t);
+  }
+
+  /* --------------------------- Term-Rendering --------------------------- */
+  // factor vor einem Ausdruck: 1->"", -1->"−", sonst num(a) (+MID falls sep)
+  function factor(a, sep) {
+    if (a === 1) return "";
+    if (a === -1) return MINUS;
+    return num(a) + (sep ? MID : "");
+  }
+  function coefX(m) {
+    if (m === 1) return "x";
+    if (m === -1) return MINUS + "x";
+    return num(m) + "x";
+  }
+  // Linearfaktor (x − r): r=0 -> "x", sonst "(x − n)" / "(x + n)"
+  function rootFactor(r) {
+    if (r === 0) return "x";
+    return "(x " + (r > 0 ? MINUS + " " + num(r) : "+ " + num(-r)) + ")";
+  }
+  function powFactor(r, m) {
+    const b = rootFactor(r);
+    if (m <= 1) return b;
+    return (b === "x" ? "x" : b) + "<sup>" + m + "</sup>";
+  }
+
+  function termHTML(fam, p) {
+    switch (fam) {
+      case "linear":
+        return "f(x) = " + coefX(p.m) + signTerm(p.t);
+      case "hyperbola": {
+        let den = "x";
+        if (p.b > 0) den += " + " + num(p.b);
+        else if (p.b < 0) den += " " + MINUS + " " + num(-p.b);
+        const fr = '<span class="frac"><span class="fnum">' + num(p.a) +
+          '</span><span class="fden">' + den + "</span></span>";
+        return "f(x) = " + fr + signTerm(p.c);
+      }
+      case "quadratic":
+        if (p.form === "normal") {
+          let s = "f(x) = ";
+          s += (p.a === 1 ? "x<sup>2</sup>" : p.a === -1 ? MINUS + "x<sup>2</sup>" : num(p.a) + "x<sup>2</sup>");
+          if (Math.abs(p.b) > 1e-9) {
+            s += (p.b > 0 ? " + " : " " + MINUS + " ");
+            s += (Math.abs(p.b) === 1 ? "x" : num(Math.abs(p.b)) + "x");
+          }
+          s += signTerm(p.c);
+          return s;
+        } else if (p.form === "nullstellen") {
+          if (p.x1 === p.x2) return "f(x) = " + factor(p.a, false) + powFactor(p.x1, 2);
+          return "f(x) = " + factor(p.a, false) + rootFactor(p.x1) + rootFactor(p.x2);
+        } else {
+          let base;
+          if (p.d === 0) base = "x<sup>2</sup>";
+          else base = "(x " + (p.d > 0 ? MINUS + " " + num(p.d) : "+ " + num(-p.d)) + ")<sup>2</sup>";
+          return "f(x) = " + factor(p.a, false) + base + signTerm(p.e);
+        }
+      case "power": {
+        if (p.root) return "f(x) = " + factor(p.a, false) + "\u221Ax";
+        const exp = p.n < 0 ? MINUS + Math.abs(p.n) : "" + p.n;
+        return "f(x) = " + factor(p.a, false) + "x<sup>" + exp + "</sup>";
+      }
+      case "exp": {
+        const base = num(p.b) + "<sup>x</sup>";
+        return "f(x) = " + factor(p.a, true) + base;
+      }
+      case "trig": {
+        const inner = (p.bb === 1 ? "x" : num(p.bb) + "x");
+        return "f(x) = " + factor(p.a, true) + p.fn + "(" + inner + ")" + signTerm(p.c);
+      }
+      case "poly": {
+        const prod = p.roots.map((f) => powFactor(f.r, f.m)).join("");
+        return "f(x) = " + factor(p.a, true) + prod;
+      }
+    }
+    return "f(x) = ?";
+  }
+
+  // Klartext-Term (für Tests / Vorschau)
+  function termText(fam, p) {
+    return termHTML(fam, p)
+      .replace(/<sup>/g, "^").replace(/<\/sup>/g, "")
+      .replace(/<span class="frac"><span class="fnum">/g, "(")
+      .replace(/<\/span><span class="fden">/g, ")/(")
+      .replace(/<\/span><\/span>/g, ")")
+      .replace(/<[^>]+>/g, "");
+  }
+
+  /* ---------------------- Evaluator & Singularitäten -------------------- */
+  function evaluator(fam, p) {
+    switch (fam) {
+      case "linear": return (x) => p.m * x + p.t;
+      case "hyperbola": return (x) => p.a / (x + p.b) + p.c;
+      case "quadratic": return (x) => p.a * (x - p.d) * (x - p.d) + p.e;
+      case "power":
+        if (p.root) return (x) => (x >= 0 ? p.a * Math.sqrt(x) : NaN);
+        return (x) => p.a * Math.pow(x, p.n);
+      case "exp": return (x) => p.a * Math.pow(p.b, x);
+      case "trig": return (x) => p.a * (p.fn === "sin" ? Math.sin(p.bb * x) : Math.cos(p.bb * x)) + p.c;
+      case "poly": return (x) => { let y = p.a; for (const f of p.roots) y *= Math.pow(x - f.r, f.m); return y; };
+    }
+    return () => NaN;
+  }
+  function singularities(fam, p) {
+    if (fam === "hyperbola") return [-p.b];
+    if (fam === "power" && !p.root && p.n < 0) return [0];
+    return [];
+  }
+  function domainOf(fam, p) {
+    if (fam === "power" && p.root) return [0, Infinity];
+    return null;
+  }
+
+  /* --------------------------- Funktionsobjekt -------------------------- */
+  function keyOf(fam, p) {
+    // Schlüssel unabhängig von Anzeigeform (Graph-Identität)
+    switch (fam) {
+      case "linear": return "lin:" + p.m + ":" + p.t;
+      case "hyperbola": return "hyp:" + p.a + ":" + p.b + ":" + p.c;
+      case "quadratic": return "qua:" + p.a + ":" + p.d + ":" + p.e;
+      case "power": return "pow:" + (p.root ? "r" : p.n) + ":" + p.a;
+      case "exp": return "exp:" + p.a + ":" + p.b;
+      case "trig": return "tri:" + p.fn + ":" + p.a + ":" + p.bb + ":" + p.c;
+      case "poly": return "poly:" + p.a + ":" + p.roots.slice().sort((A, B) => A.r - B.r || A.m - B.m).map((f) => f.r + "^" + f.m).join(",");
+    }
+    return "?";
+  }
+  function makeFunc(fam, p) {
+    return {
+      family: fam, p: p,
+      f: evaluator(fam, p),
+      sing: singularities(fam, p),
+      domain: domainOf(fam, p),
+      key: keyOf(fam, p),
+      termHTML: termHTML(fam, p),
+      termText: termText(fam, p),
+    };
+  }
+
+  /* ----------------------------- Ansichtsfenster ------------------------ */
+  const VIEW = { X0: -5, X1: 5, Y0: -5, Y1: 5 };
+
+  /* --------------------- Graph -> Polyliniensegmente -------------------- */
+  // Liefert Segmente in DATEN-Koordinaten (Arrays von [x,y]), an Polstellen
+  // und Definitionslücken getrennt. y wird begrenzt (endlich), Ausreißer
+  // werden per Clipping (im SVG) abgeschnitten.
+  function plotSegments(func) {
+    const { X0, X1 } = VIEW;
+    const CLAMP = 1000;
+    const N = 360;
+    const step = (X1 - X0) / N;
+    const eps = step * 0.5;
+
+    // Teilintervalle: Fenster ∩ Definitionsbereich, ohne ε-Umgebung der Pole
+    let intervals = [[X0, X1]];
+    if (func.domain) {
+      const [lo, hi] = func.domain;
+      intervals = intervals.map(([a, b]) => [Math.max(a, lo), Math.min(b, hi)]).filter(([a, b]) => b - a > 1e-9);
+    }
+    for (const s of func.sing) {
+      const next = [];
+      for (const [a, b] of intervals) {
+        if (s > a + eps && s < b - eps) { next.push([a, s - eps], [s + eps, b]); }
+        else if (s <= a + eps && s >= a - 1) { next.push([Math.max(a, s + eps), b]); }
+        else if (s >= b - eps && s <= b + 1) { next.push([a, Math.min(b, s - eps)]); }
+        else next.push([a, b]);
+      }
+      intervals = next.filter(([a, b]) => b - a > 1e-9);
+    }
+
+    const segs = [];
+    for (const [a, b] of intervals) {
+      let cur = [];
+      const m = Math.max(2, Math.round((b - a) / step));
+      for (let i = 0; i <= m; i++) {
+        const x = a + (b - a) * (i / m);
+        let y = func.f(x);
+        if (!isFinite(y)) { if (cur.length > 1) segs.push(cur); cur = []; continue; }
+        if (y > CLAMP) y = CLAMP; if (y < -CLAMP) y = -CLAMP;
+        cur.push([x, y]);
+      }
+      if (cur.length > 1) segs.push(cur);
+    }
+    return segs;
+  }
+
+  /* --------------------------- Graph -> SVG ----------------------------- */
+  function graphSVG(func, opts) {
+    opts = opts || {};
+    const S = opts.size || 120;
+    const suffix = opts.id || Math.random().toString(36).slice(2, 8);
+    const m = 7;
+    const { X0, X1, Y0, Y1 } = VIEW;
+    const mapX = (x) => m + (x - X0) / (X1 - X0) * (S - 2 * m);
+    const mapY = (y) => m + (Y1 - y) / (Y1 - Y0) * (S - 2 * m);
+
+    let grid = "";
+    for (let i = Math.ceil(X0); i <= Math.floor(X1); i++) {
+      grid += `<line x1="${mapX(i).toFixed(1)}" y1="${mapY(Y1).toFixed(1)}" x2="${mapX(i).toFixed(1)}" y2="${mapY(Y0).toFixed(1)}" class="fg-grid"/>`;
+    }
+    for (let j = Math.ceil(Y0); j <= Math.floor(Y1); j++) {
+      grid += `<line x1="${mapX(X0).toFixed(1)}" y1="${mapY(j).toFixed(1)}" x2="${mapX(X1).toFixed(1)}" y2="${mapY(j).toFixed(1)}" class="fg-grid"/>`;
+    }
+    // Achsen
+    const ax = `<line x1="${mapX(X0).toFixed(1)}" y1="${mapY(0).toFixed(1)}" x2="${mapX(X1).toFixed(1)}" y2="${mapY(0).toFixed(1)}" class="fg-axis"/>` +
+      `<line x1="${mapX(0).toFixed(1)}" y1="${mapY(Y0).toFixed(1)}" x2="${mapX(0).toFixed(1)}" y2="${mapY(Y1).toFixed(1)}" class="fg-axis"/>`;
+    // kleine Achsenbeschriftung
+    let labels = "";
+    [-4, -2, 2, 4].forEach((v) => {
+      labels += `<text x="${mapX(v).toFixed(1)}" y="${(mapY(0) + 8).toFixed(1)}" class="fg-lab">${Math.abs(v)}</text>`;
+      labels += `<text x="${(mapX(0) - 8).toFixed(1)}" y="${(mapY(v) + 3).toFixed(1)}" class="fg-lab">${Math.abs(v)}</text>`;
+    });
+
+    let path = "";
+    for (const seg of plotSegments(func)) {
+      let d = "";
+      seg.forEach(([x, y], i) => { d += (i ? "L" : "M") + mapX(x).toFixed(1) + " " + mapY(y).toFixed(1) + " "; });
+      path += `<path d="${d.trim()}" class="fg-curve"/>`;
+    }
+
+    // Nullstellen-Markierungen (nur ganzrationale Funktionen)
+    let marks = "";
+    if (func.family === "poly" && func.p && func.p.roots) {
+      const rr = Math.max(3, Math.min(7, S * 0.033));
+      const seen = {};
+      func.p.roots.forEach((f) => {
+        if (f.r < X0 || f.r > X1 || seen[f.r]) return; seen[f.r] = 1;
+        marks += `<circle cx="${mapX(f.r).toFixed(1)}" cy="${mapY(0).toFixed(1)}" r="${rr.toFixed(1)}" class="fg-zero"/>`;
+      });
+    }
+
+    const clip = "clip" + suffix;
+    return `<svg width="${S}" height="${S}" viewBox="0 0 ${S} ${S}" class="fg-svg" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">` +
+      `<defs><clipPath id="${clip}"><rect x="0" y="0" width="${S}" height="${S}"/></clipPath></defs>` +
+      `<g clip-path="url(#${clip})">${grid}${ax}<g>${path}</g></g>${labels}${marks}</svg>`;
+  }
+
+  /* --------------------------- Kandidatenpools -------------------------- */
+  // Grade 8: linear + hyperbola ; Grade 9: quadratic ; Grade 10: power/exp/trig/poly
+  function combos(arr, k) {
+    const res = [], n = arr.length;
+    (function rec(start, cur) {
+      if (cur.length === k) { res.push(cur.slice()); return; }
+      for (let i = start; i < n; i++) { cur.push(arr[i]); rec(i + 1, cur); cur.pop(); }
+    })(0, []);
+    return res;
+  }
+  function distinctPerms(a) {
+    const res = [], seen = new Set();
+    (function perm(arr, cur) {
+      if (!arr.length) { const k = cur.join(","); if (!seen.has(k)) { seen.add(k); res.push(cur.slice()); } return; }
+      for (let i = 0; i < arr.length; i++) { const rest = arr.slice(0, i).concat(arr.slice(i + 1)); cur.push(arr[i]); perm(rest, cur); cur.pop(); }
+    })(a, []);
+    return res;
+  }
+  // nettes führendes a wählen: der Bereich um die Nullstellen soll gut sichtbar
+  // gestreckt sein (am kleinsten Bogen orientiert). Was außen passiert, darf
+  // ruhig aus dem Fenster laufen – dort zählt nur das Vorzeichen von a.
+  function snapNice(v) {
+    const NICE = [0.05, 0.1, 0.2, 0.25, 0.5, 0.75, 1, 1.5, 2, 3, 4, 6, 8, 10, 12];
+    let best = NICE[0], bd = Infinity;
+    for (const c of NICE) { const d = Math.abs(Math.log(c / v)); if (d < bd) { bd = d; best = c; } }
+    return best;
+  }
+  function fitLeadA(roots, sign) {
+    const f0 = (x) => { let y = 1; for (const f of roots) y *= Math.pow(x - f.r, f.m); return y; };
+    const rs = roots.map((o) => o.r);
+    const distinct = Array.from(new Set(rs)).sort((p, q) => p - q);
+    const lobes = [];
+    for (let i = 0; i < distinct.length - 1; i++) {
+      const mid = (distinct[i] + distinct[i + 1]) / 2;
+      lobes.push(Math.abs(f0(mid))); // Höhe des Bogens zwischen zwei Nullstellen
+    }
+    if (!lobes.length) { const r0 = distinct[0]; lobes.push(Math.abs(f0(r0 + 0.7)), Math.abs(f0(r0 - 0.7))); }
+    let ref = Math.min.apply(null, lobes);
+    ref = Math.max(ref, 1e-3);
+    let raw = 3.5 / ref;                 // kleinster Bogen soll ~3,5 hoch werden
+    raw = Math.max(0.05, Math.min(12, raw));
+    return sign * snapNice(raw);
+  }
+  // Ganzrationale Funktionen in Nullstellenform: Grad ≤6, Vielfachheit ≤3
+  function polyCombos(diff) {
+    const partitions = {
+      3: [[1, 1, 1], [2, 1], [3]],
+      4: [[1, 1, 1, 1], [2, 1, 1], [2, 2], [3, 1]],
+      5: [[2, 1, 1, 1], [2, 2, 1], [3, 1, 1], [3, 2]],
+      6: [[2, 2, 1, 1], [2, 2, 2], [3, 1, 1, 1], [3, 2, 1], [3, 3]],
+    };
+    const degrees = diff === 1 ? [3, 4] : [3, 4, 5, 6];
+    const rootRange = { 3: [-3, -2, -1, 0, 1, 2, 3], 4: [-2, -1, 0, 1, 2, 3], 5: [-2, -1, 0, 1, 2], 6: [-2, -1, 0, 1, 2] };
+    const out = [], seen = new Set();
+    for (const d of degrees) {
+      let made = 0;
+      for (const mults of partitions[d]) {
+        const R = rootRange[d];
+        for (const rootset of combos(R, mults.length)) {
+          for (const mp of distinctPerms(mults)) {
+            const rm = rootset.map((r, i) => ({ r, m: mp[i] }));
+            for (const sign of [1, -1]) {
+              const key = sign + "|" + rm.slice().sort((A, B) => A.r - B.r).map((f) => f.r + "^" + f.m).join(",");
+              if (seen.has(key)) continue; seen.add(key);
+              out.push({ roots: rm, sign });
+              made++;
+            }
+          }
+          if (made > 140) break;
+        }
+        if (made > 140) break;
+      }
+    }
+    return out;
+  }
+
+  function pool(grade, opts, diff) {
+    const P = [];
+    const add = (fam, p) => P.push(makeFunc(fam, p));
+
+    if (grade === 8) {
+      if (opts.linear !== false) {
+        const ms = diff === 1 ? [-2, -1, -0.5, 0.5, 1, 2] : [-2, -1.5, -1, -0.5, 0.5, 1, 1.5, 2];
+        const ts = diff === 1 ? [-3, -2, -1, 1, 2, 3] : [-4, -3, -2, -1, 0, 1, 2, 3, 4];
+        ms.forEach((m) => ts.forEach((t) => add("linear", { m, t })));
+      }
+      if (opts.hyperbola !== false) {
+        const as = diff === 1 ? [-2, -1, 1, 2] : [-2, -1, 1, 2];
+        const bs = diff === 1 ? [-1, 0, 1] : [-2, -1, 0, 1, 2];
+        const cs = diff === 1 ? [-1, 0, 1] : [-2, -1, 0, 1, 2];
+        as.forEach((a) => bs.forEach((b) => cs.forEach((c) => add("hyperbola", { a, b, c }))));
+      }
+    } else if (grade === 9) {
+      const as = diff === 1 ? [-1, -0.5, 0.5, 1, 2] : [-2, -1, -0.5, 0.5, 1, 2];
+      const roots = diff === 1 ? [-2, -1, 0, 1, 2] : [-3, -2, -1, 0, 1, 2, 3];
+      const forms = [];
+      if (opts.scheitel !== false) forms.push("scheitel");
+      if (opts.normal === true) forms.push("normal");
+      if (opts.nullstellen === true) forms.push("nullstellen");
+      if (!forms.length) forms.push("scheitel");
+      const pick = (list, h) => list[((Math.round(h) % list.length) + list.length) % list.length];
+      // (1) Parabeln mit ganzzahligen Nullstellen – in jeder Form darstellbar
+      as.forEach((a) => {
+        for (let i = 0; i < roots.length; i++) {
+          for (let j = i; j < roots.length; j++) {
+            const x1 = roots[i], x2 = roots[j];
+            const d = (x1 + x2) / 2, e = -a * ((x2 - x1) * (x2 - x1)) / 4;
+            const b = -2 * a * d, c = a * d * d + e;
+            const form = pick(forms, a * 7 + d * 13 + (x2 - x1) * 5);
+            add("quadratic", { a, d, e, b, c, form, x1, x2 });
+          }
+        }
+      });
+      // (2) Parabeln ohne reelle Nullstellen – nur Scheitel-/Normalform
+      const nonNull = forms.filter((f) => f !== "nullstellen");
+      if (nonNull.length) {
+        const ds = diff === 1 ? [-2, -1, 0, 1, 2] : [-3, -2, -1, 0, 1, 2, 3];
+        const es = diff === 1 ? [1, 2] : [1, 2, 3];
+        as.forEach((a) => ds.forEach((d) => es.forEach((eMag) => {
+          const e = a > 0 ? eMag : -eMag; // gleiche Öffnungsrichtung → kein reeller Schnittpunkt
+          const b = -2 * a * d, c = a * d * d + e;
+          const form = pick(nonNull, a * 3 + d * 7 + eMag * 11);
+          add("quadratic", { a, d, e, b, c, form });
+        })));
+      }
+    } else if (grade === 10) {
+      if (opts.power !== false) {
+        const as = diff === 1 ? [1, -1, 2, -2, 0.5] : [1, -1, 2, -2, 0.5, -0.5];
+        const ns = diff === 1 ? [2, 3, 4, -1, -2] : [2, 3, 4, 5, -1, -2];
+        as.forEach((a) => ns.forEach((n) => add("power", { a, n, root: false })));
+        as.slice(0, 2).forEach((a) => add("power", { a, root: true }));
+      }
+      if (opts.exp !== false) {
+        const bs = diff === 1 ? [2, 3, 4, 0.5, 0.25] : [2, 3, 4, 10, 1.5, 0.5, 0.25];
+        const as = diff === 1 ? [1, 2] : [1, 2, 0.5, -1];
+        as.forEach((a) => bs.forEach((b) => add("exp", { a, b })));
+      }
+      if (opts.trig !== false) {
+        const fns = ["sin", "cos"];
+        const as = diff === 1 ? [1, 2] : [1, 2, 0.5];
+        const bbs = diff === 1 ? [1, 2] : [1, 2];
+        const cs = diff === 1 ? [0] : [0, 1, -1];
+        fns.forEach((fn) => as.forEach((a) => bbs.forEach((bb) => cs.forEach((c) => add("trig", { fn, a, bb, c })))));
+      }
+      if (opts.poly === true) {
+        polyCombos(diff).forEach((pc) => {
+          const a = fitLeadA(pc.roots, pc.sign);
+          add("poly", { a, roots: pc.roots.map((f) => ({ r: f.r, m: f.m })) });
+        });
+      }
+    }
+    // nach Schlüssel eindeutig
+    const seen = new Set(), uniq = [];
+    for (const fn of P) { if (!seen.has(fn.key)) { seen.add(fn.key); uniq.push(fn); } }
+    return uniq;
+  }
+
+  /* ------------------------- Spiel/Ring aufbauen ------------------------ */
+  // Wählt n verschiedene Funktionen und baut n Steine als einen Zyklus:
+  // Stein_k = { termOf: f_k , graphOf: f_{k-1} }  (mod n)  → genau ein Ring.
+  function buildGame(config) {
+    const rnd = makeRng(config.seed || (Date.now() >>> 0));
+    const P = pool(config.grade, config.opts || {}, config.difficulty || 1);
+    const n = config.count || 8;
+    if (P.length < n) return { error: "pool_too_small", available: P.length };
+    const funcs = sampleDistinct(P, n, rnd).map((f, i) => Object.assign({ id: i }, f));
+
+    const stones = [];
+    for (let k = 0; k < n; k++) {
+      const termF = funcs[k];
+      const graphF = funcs[(k - 1 + n) % n];
+      stones.push({ id: k, termOf: termF.id, graphOf: graphF.id });
+    }
+    return { funcs, stones: shuffle(stones, rnd), rndSeed: config.seed || 0, n };
+  }
+
+  /* ------------------------------- Export ------------------------------- */
+  const API = {
+    makeRng, shuffle, sampleDistinct, num, signTerm,
+    termHTML, termText, evaluator, singularities, plotSegments, graphSVG,
+    makeFunc, keyOf, pool, buildGame, VIEW, MINUS, MID,
+  };
+  root.FuminoCore = API;
+  if (typeof module !== "undefined" && module.exports) module.exports = API;
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+<script>
+/* ==========================  FUMINO – App/UI  ========================== */
+(function () {
+  "use strict";
+  const F = window.FuminoCore;
+  const $ = (s, r) => (r || document).querySelector(s);
+  const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
+
+  /* ---------- Konfiguration & Funktionsart-Definitionen ---------- */
+  const TYPES = {
+    8: [
+      { key: "linear", name: "Lineare Funktionen", ex: "f(x) = m\u00B7x + t", def: true },
+      { key: "hyperbola", name: "Gebrochenrationale Funktionen", ex: "f(x) = a/(x+b) + c", def: true },
+    ],
+    9: [
+      { key: "scheitel", name: "Scheitelpunktform", ex: "f(x) = a(x\u2212d)\u00B2 + e", def: true },
+      { key: "nullstellen", name: "Nullstellenform", ex: "f(x) = a(x\u2212x\u2081)(x\u2212x\u2082)", def: false },
+      { key: "normal", name: "Normalform", ex: "f(x) = ax\u00B2 + bx + c", def: false },
+    ],
+    10: [
+      { key: "power", name: "Potenzfunktionen", ex: "f(x) = a\u00B7x\u207F, \u221Ax", def: true },
+      { key: "exp", name: "Exponentialfunktionen", ex: "f(x) = a\u00B7b\u02E3 (ohne e)", def: true },
+      { key: "trig", name: "Sinus / Kosinus", ex: "f(x) = a\u00B7sin(bx) + c", def: true },
+      { key: "poly", name: "Ganzrationale Funktionen", ex: "Nullstellenform, bis Grad 6", def: false },
+    ],
+  };
+
+  const cfg = { grade: 8, opts: {}, mode: "vs", diff: 1, count: 8 };
+  let G = null; // aktuelles Spiel
+
+  /* ---------- kleines Graph-Icon fürs Logo ---------- */
+  function logoIcon() {
+    const f = F.makeFunc("quadratic", { a: 1, d: 0, e: -2, form: "scheitel" });
+    return F.graphSVG(f, { size: 40, id: "logo" + Math.random().toString(36).slice(2, 6) });
+  }
+  $("#logoGraph").innerHTML = logoIcon();
+  $("#logoGraph2").innerHTML = logoIcon();
+
+  /* ======================  Startbildschirm  ====================== */
+  function renderTypeChecks() {
+    const wrap = $("#typeChecks");
+    wrap.innerHTML = "";
+    cfg.opts = {};
+    TYPES[cfg.grade].forEach((t) => {
+      cfg.opts[t.key] = t.def;
+      const el = document.createElement("div");
+      el.className = "chk" + (t.def ? " on" : "");
+      el.innerHTML = `<span class="box">\u2713</span><span class="meta"><span class="name">${t.name}</span><span class="ex">${t.ex}</span></span>`;
+      el.addEventListener("click", () => {
+        // mindestens eine Art aktiv lassen
+        const active = Object.values(cfg.opts).filter(Boolean).length;
+        if (cfg.opts[t.key] && active <= 1) { toast("Mindestens eine Funktionsart auswählen.", "bad"); return; }
+        cfg.opts[t.key] = !cfg.opts[t.key];
+        el.classList.toggle("on", cfg.opts[t.key]);
+        updatePool();
+      });
+      wrap.appendChild(el);
+    });
+    updatePool();
+  }
+
+  function segSetup(id, onPick) {
+    $$("#" + id + " button").forEach((b) => {
+      b.addEventListener("click", () => {
+        if (b.disabled) return;
+        $$("#" + id + " button").forEach((x) => x.classList.remove("sel"));
+        b.classList.add("sel");
+        onPick(b.dataset.v);
+      });
+    });
+  }
+  segSetup("segGrade", (v) => { cfg.grade = +v; renderTypeChecks(); });
+  segSetup("segMode", (v) => { cfg.mode = v; });
+  segSetup("segDiff", (v) => { cfg.diff = +v; updatePool(); });
+  segSetup("segCount", (v) => { cfg.count = +v; updatePool(); });
+
+  function currentPoolSize() {
+    return F.pool(cfg.grade, cfg.opts, cfg.diff).length;
+  }
+  function updatePool() {
+    const size = currentPoolSize();
+    // Umfang-Buttons je nach Pool freigeben
+    $$("#segCount button").forEach((b) => {
+      const need = +b.dataset.v;
+      b.disabled = size < need;
+      if (b.disabled && b.classList.contains("sel")) {
+        b.classList.remove("sel");
+      }
+    });
+    // falls aktuelle Auswahl deaktiviert wurde: größte erlaubte wählen
+    if (!$("#segCount button.sel")) {
+      const allowed = $$("#segCount button").filter((b) => !b.disabled);
+      if (allowed.length) { allowed[allowed.length - 1].classList.add("sel"); cfg.count = +allowed[allowed.length - 1].dataset.v; }
+    } else {
+      cfg.count = +$("#segCount button.sel").dataset.v;
+    }
+    $("#poolInfo").textContent = size + " verschiedene Funktionen verfügbar";
+    const okStart = size >= 8;
+    $("#startBtn").disabled = !okStart;
+    $("#startHint").textContent = okStart ? "" : "Zu wenige Funktionen \u2013 weitere Art oder Stufe 2 wählen.";
+  }
+
+  $("#startBtn").addEventListener("click", startGame);
+
+  /* ==========================  Spielaufbau  ========================== */
+  function startGame() {
+    const game = F.buildGame({ grade: cfg.grade, opts: cfg.opts, difficulty: cfg.diff, count: cfg.count, seed: (Math.random() * 1e9) >>> 0 });
+    if (game.error) { toast("Bitte weitere Funktionsarten wählen.", "bad"); return; }
+    const funcById = {}; game.funcs.forEach((f) => (funcById[f.id] = f));
+    const stoneById = {}; game.stones.forEach((s) => (stoneById[s.id] = s));
+
+    G = {
+      funcById, stoneById, mode: cfg.mode,
+      chain: [], leftEnd: null, rightEnd: null,
+      hands: [[], []], pool: [], current: 0, selected: null, passes: 0, finished: false,
+    };
+
+    const ids = game.stones.map((s) => s.id);
+    if (cfg.mode === "coop") {
+      G.pool = ids.slice();
+    } else {
+      const half = Math.ceil(ids.length / 2);
+      G.hands[0] = ids.slice(0, half);
+      G.hands[1] = ids.slice(half);
+    }
+
+    show("game");
+    setupTurnUI();
+    renderAll();
+    if (cfg.mode === "vs") { /* Spieler 0 beginnt direkt */ }
+  }
+
+  function setupTurnUI() {
+    const coop = G.mode === "coop";
+    $("#passBtn").style.display = coop ? "none" : "";
+    $("#turnBadge").className = "turnbadge " + (coop ? "" : "p" + G.current);
+    $("#turnText").textContent = coop ? "Kooperativ" : "Spieler " + (G.current + 1);
+    $("#handLabel").textContent = coop ? "Alle Steine" : "Steine von Spieler " + (G.current + 1);
+  }
+
+  function activeHand() { return G.mode === "coop" ? G.pool : G.hands[G.current]; }
+
+  /* ==========================  Rendering  ========================== */
+  function graphCellSVG(funcId, size) {
+    const f = G.funcById[funcId];
+    return F.graphSVG(f, { size: size || 130, id: "g" + funcId + "_" + Math.random().toString(36).slice(2, 6) });
+  }
+  function stoneEl(stone, opts) {
+    opts = opts || {};
+    const el = document.createElement("div");
+    el.className = "stone " + (opts.cls || "");
+    el.dataset.id = stone.id;
+    const gCell = `<div class="cell graph ${opts.openLeft ? "open" : ""}">${graphCellSVG(stone.graphOf, opts.gsize)}</div>`;
+    const tCell = `<div class="cell term ${opts.openRight ? "open" : ""}"><div class="term-txt">${G.funcById[stone.termOf].termHTML}</div></div>`;
+    el.innerHTML = gCell + tCell + `<div class="zoom">\u26F6</div>`;
+    $(".zoom", el).addEventListener("click", (e) => { e.stopPropagation(); openZoom(stone); });
+    return el;
+  }
+
+  function renderBoard() {
+    const board = $("#board");
+    board.innerHTML = "";
+    if (!G.chain.length) {
+      board.innerHTML = '<div class="emptyboard">Noch kein Stein liegt.<br>W\u00E4hle unten einen Stein und lege ihn an.</div>';
+      updateEndPills();
+      return;
+    }
+    // linkes Drop-Ziel
+    const dl = dropTarget("L");
+    board.appendChild(dl);
+    G.chain.forEach((sid, i) => {
+      const s = G.stoneById[sid];
+      board.appendChild(stoneEl(s, {
+        cls: "board-s",
+        gsize: 130,
+        openLeft: i === 0,
+        openRight: i === G.chain.length - 1,
+      }));
+    });
+    const dr = dropTarget("R");
+    board.appendChild(dr);
+    updateDropTargets();
+    updateEndPills();
+    // ans zuletzt gelegte Ende scrollen
+    setTimeout(() => { if (G._scrollTo === "L") board.scrollLeft = 0; else board.scrollLeft = board.scrollWidth; }, 0);
+  }
+
+  function dropTarget(side) {
+    const d = document.createElement("div");
+    d.className = "droptarget"; d.dataset.side = side;
+    d.textContent = side === "L" ? "\u25C0 hier" : "hier \u25B6";
+    d.addEventListener("click", () => { if (G.selected != null) tryPlace(G.selected, side); });
+    return d;
+  }
+  function updateDropTargets() {
+    const s = G.selected != null ? G.stoneById[G.selected] : null;
+    $$(".droptarget").forEach((d) => {
+      const side = d.dataset.side;
+      const okv = s && (side === "L" ? canLeft(s) : canRight(s));
+      d.classList.toggle("active", !!okv);
+    });
+  }
+
+  function updateEndPills() {
+    if (!G.chain.length) {
+      $("#pillLeft").textContent = "Lege den ersten Stein";
+      $("#pillRight").textContent = "";
+      return;
+    }
+    $("#pillLeft").innerHTML = "Links offen: <b>Graph</b> \u2013 passenden <b>Term</b> anlegen";
+    $("#pillRight").innerHTML = "Rechts offen: <b>Term</b> \u2013 passenden <b>Graphen</b> anlegen";
+  }
+
+  function renderHand() {
+    const hand = $("#hand");
+    hand.innerHTML = "";
+    const ids = activeHand();
+    $("#handCount").textContent = ids.length + " Stein" + (ids.length === 1 ? "" : "e");
+    ids.forEach((sid) => {
+      const s = G.stoneById[sid];
+      const playable = isPlayable(s);
+      const el = stoneEl(s, { cls: "hand-s" + (playable ? " playable" : "") + (G.selected === sid ? " sel" : ""), gsize: 100 });
+      el.addEventListener("click", () => selectStone(sid));
+      hand.appendChild(el);
+    });
+  }
+
+  function renderAll() { renderBoard(); renderHand(); }
+
+  /* ==========================  Spiellogik  ========================== */
+  function canLeft(s) { return G.chain.length > 0 && s.termOf === G.leftEnd.func; }
+  function canRight(s) { return G.chain.length > 0 && s.graphOf === G.rightEnd.func; }
+  function isPlayable(s) {
+    if (!G.chain.length) return true; // Eröffnung
+    return canLeft(s) || canRight(s);
+  }
+
+  function selectStone(sid) {
+    G.selected = (G.selected === sid) ? null : sid;
+    renderHand();
+    if (!G.chain.length) {
+      // Eröffnung: direkt legen erlauben (ein Klick wählt, zweiter … → wir bieten sofort an)
+    }
+    updateDropTargets();
+    // Bei leerer Tafel: nach Auswahl direkt anlegen
+    if (G.selected != null && !G.chain.length) placeOpener(G.selected);
+  }
+
+  function placeOpener(sid) {
+    const s = G.stoneById[sid];
+    G.chain = [sid];
+    G.leftEnd = { func: s.graphOf, rep: "graph" };
+    G.rightEnd = { func: s.termOf, rep: "term" };
+    removeFromHand(sid);
+    G.selected = null; G.passes = 0; G._scrollTo = "R";
+    afterMove();
+  }
+
+  function tryPlace(sid, side) {
+    const s = G.stoneById[sid];
+    if (!G.chain.length) { placeOpener(sid); return; }
+    if (side === "L") {
+      if (!canLeft(s)) return badPlace();
+      G.chain.unshift(sid);
+      G.leftEnd = { func: s.graphOf, rep: "graph" };
+      G._scrollTo = "L";
+    } else {
+      if (!canRight(s)) return badPlace();
+      G.chain.push(sid);
+      G.rightEnd = { func: s.termOf, rep: "term" };
+      G._scrollTo = "R";
+    }
+    removeFromHand(sid);
+    G.selected = null; G.passes = 0;
+    afterMove();
+  }
+
+  function badPlace() {
+    toast("Passt nicht \u2013 Term und Graph geh\u00F6ren zu verschiedenen Funktionen.", "bad");
+  }
+
+  function removeFromHand(sid) {
+    const h = activeHand();
+    const i = h.indexOf(sid);
+    if (i >= 0) h.splice(i, 1);
+  }
+
+  function afterMove() {
+    // Gewonnen?
+    if (G.mode === "coop") {
+      if (G.pool.length === 0) return finish(null);
+      renderAll();
+      return;
+    }
+    // Gegeneinander
+    if (G.hands[G.current].length === 0) return finish(G.current);
+    nextTurn();
+  }
+
+  function nextTurn() {
+    G.current = 1 - G.current;
+    G.selected = null;
+    setupTurnUI();
+    renderBoard(); // Tafel schon zeigen, Hand erst nach Weitergeben
+    // Weitergeben-Bildschirm
+    $("#passTitle").textContent = "Weitergeben";
+    $("#passSub").textContent = "Gib das iPad an Spieler " + (G.current + 1) + ".";
+    $("#hand").innerHTML = "";
+    show("game");
+    $("#pass").classList.add("on");
+  }
+  $("#passReady").addEventListener("click", () => {
+    $("#pass").classList.remove("on");
+    renderHand();
+    // Falls kein Zug möglich → Hinweis
+    const any = activeHand().some((sid) => isPlayable(G.stoneById[sid]));
+    if (!any) toast("Kein passender Stein \u2013 bitte auf \u201EPassen\u201C tippen.", "bad");
+  });
+
+  $("#passBtn").addEventListener("click", () => {
+    if (G.mode !== "vs" || G.finished) return;
+    const any = activeHand().some((sid) => isPlayable(G.stoneById[sid]));
+    if (any) { toast("Du hast noch einen passenden Stein!", "bad"); return; }
+    G.passes++;
+    if (G.passes >= 2) { toast("Beide k\u00F6nnen nicht \u2013 unentschieden.", ""); return finish(-1); }
+    nextTurn();
+  });
+
+  /* Tipp: markiere einen spielbaren Stein */
+  $("#hintBtn").addEventListener("click", () => {
+    if (G.finished) return;
+    const ids = activeHand();
+    const sid = ids.find((s) => isPlayable(G.stoneById[s]));
+    if (sid == null) { toast("Kein passender Stein \u2013 auf \u201EPassen\u201C tippen.", ""); return; }
+    if (!G.chain.length) { toast("Jeder Stein darf er\u00F6ffnen \u2013 tippe einen an.", "good"); return; }
+    G.selected = sid;
+    renderHand();
+    updateDropTargets();
+    const el = $('.hand .stone[data-id="' + sid + '"]');
+    if (el) el.scrollIntoView({ inline: "center", behavior: "smooth" });
+    toast("Dieser Stein passt \u2013 tippe auf ein gl\u00FChendes Ende.", "good");
+  });
+
+  $("#menuBtn").addEventListener("click", () => { if (confirm("Zur\u00FCck zu den Einstellungen?")) show("start"); });
+  $("#newsetBtn").addEventListener("click", () => {
+    const inProgress = G && !G.finished && G.chain && G.chain.length > 0;
+    if (inProgress && !confirm("Neues Funktionenset erzeugen? Das aktuelle Spiel wird beendet.")) return;
+    startGame();
+    toast("Neue Funktionen ausgew\u00FChlt.", "good");
+  });
+
+  /* ==========================  Overlays  ========================== */
+  function finish(winner) {
+    G.finished = true;
+    $("#pass").classList.remove("on");
+    if (G.mode === "coop") {
+      $("#winTitle").textContent = "Geschafft! \uD83C\uDF89";
+      $("#winSub").textContent = "Alle " + G.chain.length + " Steine bilden einen g\u00FCltigen Ring.";
+    } else if (winner === -1) {
+      $("#winTitle").textContent = "Unentschieden";
+      $("#winSub").textContent = "Keiner konnte mehr anlegen.";
+    } else {
+      $("#winTitle").textContent = "Spieler " + (winner + 1) + " gewinnt! \uD83C\uDF89";
+      $("#winSub").textContent = "Alle Steine passend abgelegt.";
+    }
+    $("#win").classList.add("on");
+  }
+  $("#winAgain").addEventListener("click", () => { $("#win").classList.remove("on"); startGame(); });
+  $("#winMenu").addEventListener("click", () => { $("#win").classList.remove("on"); show("start"); });
+
+  function openZoom(stone) {
+    const el = stoneEl(stone, { cls: "zoom-s", gsize: 340 });
+    $(".zoom", el) && $(".zoom", el).remove();
+    $("#zoomStone").innerHTML = "";
+    $("#zoomStone").appendChild(el);
+    $("#zoom").classList.add("on");
+  }
+  $("#zoomClose").addEventListener("click", () => $("#zoom").classList.remove("on"));
+  $("#zoom").addEventListener("click", (e) => { if (e.target.id === "zoom") $("#zoom").classList.remove("on"); });
+
+  /* ==========================  Helfer  ========================== */
+  function show(id) {
+    $$(".screen").forEach((s) => s.classList.remove("on"));
+    $("#" + id).classList.add("on");
+  }
+  let toastTimer = null;
+  function toast(msg, kind) {
+    const t = $("#toast");
+    t.textContent = msg; t.className = "on " + (kind || "");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove("on"), 2600);
+  }
+
+  /* Test-Hook */
+  window.__fumino = {
+    getState: () => G, cfg, startGame, tryPlace, placeOpener, selectStone,
+    canLeft, canRight, isPlayable, activeHand, currentPoolSize, F,
+  };
+
+  // Initial
+  renderTypeChecks();
+})();
+
+</script>
+</body>
+</html>

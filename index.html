@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spiele-Suite – Mathematik &amp; Physik</title>
+<style>
+  :root{
+    --bg:#f3f0e9; --bg2:#e9e4d8;
+    --card:#fffdf8; --line:#e2dccd; --line2:#cfc7b4;
+    --ink:#22272f; --ink2:#5d6472; --ink3:#8a91a0;
+    --accent:#b8853a; --accent-d:#8f6524;
+    --shadow:0 2px 6px rgba(50,40,20,.06), 0 10px 26px rgba(50,40,20,.09);
+    --shadow-s:0 1px 3px rgba(50,40,20,.08);
+    --radius:18px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#16181d; --bg2:#101216;
+      --card:#1f232a; --line:#2e333c; --line2:#3c424d;
+      --ink:#eef0f4; --ink2:#a8b0bd; --ink3:#7e8694;
+      --accent:#e0a94e; --accent-d:#f0c274;
+      --shadow:0 2px 6px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
+      --shadow-s:0 1px 3px rgba(0,0,0,.35);
+    }
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0; min-height:100%; color:var(--ink);
+    background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
+    background-attachment:fixed;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    font-size:17px; line-height:1.5;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:26px 18px 60px;}
+
+  /* ---------------- Kopf ---------------- */
+  header.top{text-align:center; margin:10px 0 26px;}
+  header.top .kicker{font-size:.8rem; letter-spacing:.16em; text-transform:uppercase; color:var(--ink3); font-weight:700;}
+  header.top h1{margin:.25rem 0 .35rem; font-size:clamp(2rem,5.5vw,2.9rem); letter-spacing:-.02em;}
+  header.top h1 b{color:var(--accent-d);}
+  header.top p{margin:0 auto; max-width:56ch; color:var(--ink2); font-size:1.02rem;}
+
+  /* ---------------- Filter ---------------- */
+  .filters{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow-s); padding:14px 16px 16px; margin-bottom:22px;}
+  .frow{display:flex; align-items:flex-start; gap:12px; padding:7px 0; flex-wrap:wrap;}
+  .frow + .frow{border-top:1px solid var(--line); margin-top:2px;}
+  .flabel{flex:0 0 108px; padding-top:8px; font-size:.78rem; font-weight:750; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--ink3);}
+  .chips{display:flex; flex-wrap:wrap; gap:8px; flex:1 1 300px;}
+  .chip{border:1.5px solid var(--line2); background:transparent; color:var(--ink);
+    border-radius:999px; padding:8px 15px; font-size:.95rem; font-weight:600; cursor:pointer;
+    font-family:inherit; transition:.12s; min-height:38px;}
+  .chip:active{transform:scale(.97);}
+  .chip.on{background:var(--accent); border-color:var(--accent); color:#2b1f06;}
+  @media (prefers-color-scheme:dark){ .chip.on{color:#1a1206;} }
+  .searchbox{flex:1 1 220px; display:flex; align-items:center; gap:8px; border:1.5px solid var(--line2);
+    border-radius:12px; padding:0 12px; background:var(--bg); min-height:42px;}
+  .searchbox input{border:none; background:transparent; outline:none; color:var(--ink);
+    font:inherit; font-size:1rem; width:100%; padding:9px 0;}
+  .searchbox span{color:var(--ink3);}
+  .fmeta{display:flex; align-items:center; gap:12px; margin-top:12px; flex-wrap:wrap;}
+  .count{font-size:.92rem; color:var(--ink2);}
+  .reset{border:none; background:transparent; color:var(--accent-d); font:inherit; font-weight:700;
+    cursor:pointer; padding:6px 2px; font-size:.92rem; text-decoration:underline; text-underline-offset:3px;}
+
+  /* ---------------- Karten ---------------- */
+  .grid{display:grid; gap:18px; grid-template-columns:repeat(auto-fill,minmax(310px,1fr));}
+  .game{background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); overflow:hidden; display:flex; flex-direction:column;
+    position:relative; transition:transform .14s, box-shadow .14s;}
+  .game::before{content:""; position:absolute; inset:0 0 auto 0; height:5px; background:var(--gc,#999);}
+  .game:hover{transform:translateY(-2px);}
+  .game .head{display:flex; gap:13px; align-items:flex-start; padding:20px 18px 0;}
+  .game .mark{flex:0 0 auto; width:52px; height:52px; border-radius:15px; display:flex;
+    align-items:center; justify-content:center; font-size:26px; line-height:1;
+    background:color-mix(in srgb, var(--gc) 16%, transparent);
+    border:1.5px solid color-mix(in srgb, var(--gc) 42%, transparent);}
+  .game h2{margin:0; font-size:1.3rem; letter-spacing:-.01em;}
+  .game .tagline{margin:2px 0 0; font-size:.93rem; color:var(--gc); font-weight:700;}
+  .game .body{padding:12px 18px 0; flex:1;}
+  .game .desc{margin:0; color:var(--ink2); font-size:.97rem;}
+  .game .facts{list-style:none; margin:14px 0 0; padding:0; display:grid; gap:6px;}
+  .game .facts li{display:flex; gap:9px; font-size:.9rem; color:var(--ink2);}
+  .game .facts b{flex:0 0 78px; color:var(--ink3); font-weight:700; font-size:.78rem;
+    text-transform:uppercase; letter-spacing:.06em; padding-top:2px;}
+  .game .actions{display:flex; gap:9px; padding:16px 18px 18px; margin-top:14px;}
+  .btn{flex:1; display:flex; align-items:center; justify-content:center; gap:7px;
+    border-radius:12px; padding:13px 14px; font:inherit; font-size:1rem; font-weight:750;
+    cursor:pointer; border:1.5px solid transparent; text-decoration:none; min-height:48px; transition:.12s;}
+  .btn:active{transform:scale(.985);}
+  .btn.play{background:var(--gc); color:#fff; border-color:var(--gc);}
+  .btn.info{flex:0 0 auto; background:transparent; color:var(--ink2); border-color:var(--line2); padding:13px 18px;}
+  .empty{grid-column:1/-1; text-align:center; color:var(--ink2); padding:50px 20px;
+    border:2px dashed var(--line2); border-radius:var(--radius);}
+
+  /* ---------------- Detail-Overlay ---------------- */
+  .overlay{position:fixed; inset:0; background:rgba(20,16,10,.62); backdrop-filter:blur(3px);
+    display:none; align-items:center; justify-content:center; padding:18px; z-index:50;}
+  .overlay.on{display:flex;}
+  .sheet{background:var(--card); border-radius:22px; box-shadow:0 24px 60px rgba(0,0,0,.4);
+    width:100%; max-width:600px; max-height:88vh; display:flex; flex-direction:column; overflow:hidden;
+    border:1px solid var(--line);}
+  .sheet .shead{padding:22px 22px 14px; border-bottom:1px solid var(--line); display:flex; gap:13px; align-items:flex-start;}
+  .sheet .shead h2{margin:0; font-size:1.45rem;}
+  .sheet .shead .tagline{margin:2px 0 0; color:var(--gc); font-weight:700; font-size:.95rem;}
+  .sheet .sbody{padding:18px 22px 6px; overflow-y:auto; -webkit-overflow-scrolling:touch;}
+  .sheet .sbody h3{margin:18px 0 6px; font-size:.78rem; letter-spacing:.09em; text-transform:uppercase; color:var(--ink3);}
+  .sheet .sbody h3:first-child{margin-top:0;}
+  .sheet .sbody p{margin:0 0 4px; color:var(--ink2); font-size:1rem;}
+  .sheet .sbody ul{margin:4px 0 0; padding-left:20px; color:var(--ink2); font-size:.98rem;}
+  .sheet .sbody li{margin-bottom:5px;}
+  .sheet .sfoot{padding:14px 22px calc(18px + env(safe-area-inset-bottom)); display:flex; gap:10px;
+    border-top:1px solid var(--line); background:var(--card);}
+  .taglist{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px;}
+  .tag{font-size:.8rem; font-weight:650; color:var(--ink2); background:var(--bg);
+    border:1px solid var(--line2); border-radius:999px; padding:4px 11px;}
+
+  footer.note{margin-top:34px; text-align:center; color:var(--ink3); font-size:.88rem; line-height:1.6;}
+  footer.note code{background:var(--card); border:1px solid var(--line); border-radius:6px; padding:1px 6px; font-size:.85rem;}
+
+  @media (max-width:640px){
+    .flabel{flex:0 0 100%; padding-top:0;}
+    .game .actions{flex-wrap:wrap;}
+  }
+  @media (prefers-reduced-motion:reduce){ *{transition:none!important; animation:none!important;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="kicker">Mathematik &amp; Physik · fürs iPad</div>
+    <h1>Spiele<b>·</b>Suite</h1>
+    <p>Zehn fertige Unterrichtsspiele – alle laufen offline im Browser, ohne Anmeldung und ohne Installation. Filtern, antippen, loslegen.</p>
+  </header>
+
+  <section class="filters">
+    <div class="frow">
+      <div class="flabel">Fach</div>
+      <div class="chips" id="fFach"></div>
+    </div>
+    <div class="frow">
+      <div class="flabel">Jahrgang</div>
+      <div class="chips" id="fStufe"></div>
+    </div>
+    <div class="frow">
+      <div class="flabel">Spielform</div>
+      <div class="chips" id="fForm"></div>
+    </div>
+    <div class="frow">
+      <div class="flabel">Suche</div>
+      <div class="searchbox"><span>🔎</span><input id="q" type="search" placeholder="Thema, z. B. Brüche, Vektoren, Terme …" autocomplete="off"></div>
+    </div>
+    <div class="fmeta">
+      <span class="count" id="count"></span>
+      <button class="reset" id="reset">Filter zurücksetzen</button>
+    </div>
+  </section>
+
+  <div class="grid" id="grid"></div>
+
+  <footer class="note">
+    Diese Datei erwartet die Spiele im <b>gleichen Ordner</b>.<br>
+    Auf dem iPad am besten über <code>Teilen → Zum Home-Bildschirm</code> ablegen.
+  </footer>
+</div>
+
+<div class="overlay" id="modal">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<script>
+"use strict";
+
+/* =====================================================================
+   Spieldaten – eine Datei pro Spiel, alle im selben Ordner
+   ===================================================================== */
+const GAMES = [
+  {
+    file:"Bruno.html", title:"Bruno", tagline:"Das Bruch-Spiel",
+    icon:"🍰", color:"#7c5bb8", fach:["Mathematik"], form:"Kartenspiel",
+    stufen:[6,7], stufenText:"Klasse 6 (Wiederholung ab 7)",
+    sozial:"Zu zweit am iPad oder gegen den Computer",
+    thema:"Brüche, Darstellungen, Bruchrechnen",
+    kurz:"UNO für Brüche: Jede Karte zeigt denselben Wert in einer anderen Gestalt – gekürzt, erweitert, als Tortendiagramm, als Dezimalzahl, als gemischte Zahl oder als Rechenaufgabe.",
+    ziel:"Wer zuerst alle Karten abgelegt hat, gewinnt. Ablegen darf man eine Karte, die im <b>Wert</b>, im <b>Zähler</b> oder im <b>Nenner</b> zur obersten Karte passt – dadurch vergleicht man ständig unterschiedliche Darstellungen desselben Bruchs.",
+    punkte:[
+      "Modus: zu zweit (mit Übergabe) oder gegen den Computer",
+      "Schwierigkeit einfach (Stammbrüche, kleine Nenner) oder schwer (Achtel, Zwölftel, unechte Brüche)",
+      "Kartenset Standard oder zufällig gewürfelt – die Brüche werden vor dem Start angezeigt",
+      "Zuschaltbar: erweiterte Brüche, Tortendarstellungen, Dezimalbrüche, gemischte Zahlen",
+      "Rechenkarten mit +, −, ·, : und Potenzen (Exponent 2, −1, −2), deren Ergebnis den Bruch ergibt",
+      "Aktionskarten (2 Ziehen, Joker, Wunschzähler) und eine Hilfe, die passende Karten hervorhebt"
+    ],
+    keywords:"bruch brüche kürzen erweitern dezimalzahl gemischte zahl tortendiagramm uno karten"
+  },
+  {
+    file:"D-Uno.html", title:"D-Uno", tagline:"Das Distributiv-Spiel",
+    icon:"🟪", color:"#8a5fd0", fach:["Mathematik"], form:"Kartenspiel",
+    stufen:[5,6,7], stufenText:"Klasse 5 – 7",
+    sozial:"Zu zweit am iPad oder gegen den Computer",
+    thema:"Distributivgesetz, Ausklammern und Ausmultiplizieren",
+    kurz:"Dieselbe Idee wie Bruno, aber fürs Distributivgesetz: Jede Karte zeigt ein Produkt a·(b+c) – ausgeklammert, ausmultipliziert oder als Punktmuster.",
+    ziel:"Angelegt werden darf, was den <b>gleichen Faktor</b> oder die <b>gleichen Summanden</b> hat – bewusst nicht der gleiche Ergebniswert. Wer beides trifft (also die vollständige Gegenform desselben Gesetzes), darf sofort noch einmal legen.",
+    punkte:[
+      "Klasse 5: ganze Zahlen, Punktmuster als Darstellung, optional negative Zahlen",
+      "Klasse 6: Brüche und Dezimalzahlen (½ und 0,5 gelten als derselbe Faktor)",
+      "Klasse 7: Terme mit Variablen, ausmultipliziert z. B. 3x + 6",
+      "Minus und drei Summanden sind in allen Jahrgangsstufen möglich",
+      "Schwierigkeit einfach/schwer über die Zahlengröße",
+      "Aktionskarten (2 Ziehen, Joker, Wunschfaktor), Regeln passen sich der Stufe an"
+    ],
+    keywords:"distributivgesetz ausklammern ausmultiplizieren punktmuster terme klammern uno karten"
+  },
+  {
+    file:"Termino.html", title:"Termino", tagline:"Term-Domino",
+    icon:"🁣", color:"#c9902a", fach:["Mathematik"], form:"Domino",
+    stufen:[7,8,9,10], stufenText:"Klasse 7 – 10",
+    sozial:"Zu zweit (verdeckt) oder kooperativ",
+    thema:"Gleichwertige Terme erkennen",
+    kurz:"Domino mit Termen: Zwei Hälften passen zusammen, wenn ihre Terme gleichwertig sind – gleicher Wert, andere Schreibweise. Alle Steine bilden genau einen Ring, der sich schließen lässt.",
+    ziel:"Im Modus <b>Gegeneinander</b> gewinnt, wer zuerst alle eigenen Steine losgeworden ist; zwischen den Zügen kommt ein Übergabe-Bildschirm. Im Modus <b>Kooperativ</b> liegen alle Steine offen und die Gruppe schließt den Ring gemeinsam.",
+    punkte:[
+      "Klasse 7: Summen und Produkte zusammenfassen, Klammern ausmultiplizieren, binomische Formeln",
+      "Klasse 8: Bruchterme kürzen, Potenzgesetze, negative Exponenten, Minus ausklammern",
+      "Klasse 9: Wurzelterme mit Zahlen und Variablen (teilweise radizieren, Beträge)",
+      "Klasse 10: Logarithmusterme mit Zahlen und Variablen",
+      "Schwierigkeit Stufe 1 (Grundformen) oder Stufe 2 (anspruchsvoller)",
+      "Umfang 8, 12 oder 16 Steine; Tipp-Knopf im kooperativen Modus"
+    ],
+    keywords:"terme gleichwertig vereinfachen binomische formeln bruchterme wurzeln logarithmus domino"
+  },
+  {
+    file:"Fumino.html", title:"Fumino", tagline:"Funktions-Domino",
+    icon:"📈", color:"#2c6fd6", fach:["Mathematik"], form:"Domino",
+    stufen:[8,9,10], stufenText:"Klasse 8 – 10",
+    sozial:"Zu zweit (verdeckt) oder kooperativ",
+    thema:"Funktionsterm und Graph zuordnen",
+    kurz:"Jeder Dominostein trägt links einen Graphen und rechts einen Funktionsterm. Angelegt wird immer Term an passenden Graphen – und umgekehrt.",
+    ziel:"Die Steine bilden einen geschlossenen Ring. Wer gegeneinander spielt, will zuerst alle Steine loswerden; kooperativ wird der Ring gemeinsam geschlossen. Jeder Stein lässt sich zum Vergrößern antippen.",
+    punkte:[
+      "Klasse 8: lineare Funktionen und gebrochen-rationale Funktionen a/(x+b) + c",
+      "Klasse 9: Parabeln in Scheitelpunkt-, Nullstellen- oder Normalform (einzeln wählbar)",
+      "Klasse 10: Potenz-, Exponential- und Sinus-/Kosinusfunktionen, dazu ganzrationale Funktionen bis Grad 6",
+      "Schwierigkeit Stufe 1 oder Stufe 2, Umfang 8, 12 oder 16 Steine",
+      "„Neues Set“ würfelt sofort andere Funktionen aus, Tipp-Knopf markiert einen passenden Stein"
+    ],
+    keywords:"funktionen graph term parabel scheitelpunktform exponentialfunktion sinus potenzfunktion domino zuordnen"
+  },
+  {
+    file:"Kopfrechen-Duell.html", title:"Kopfrechen-Duell", tagline:"Zwei Teams, ein Kopf",
+    icon:"⚡", color:"#d2452f", fach:["Mathematik"], form:"Team-Duell",
+    stufen:[5,6,7,8,9,10,11], stufenText:"Jahrgangsstufe 5 – 11",
+    sozial:"Ganze Klasse, zwei Teams – am besten über den Beamer",
+    thema:"Kopfrechnen und Grundwissen auf Zeit",
+    kurz:"Aufgabe erscheint, Team buzzert, Uhr läuft. Richtige Antworten geben Punkte, bis die Zielpunktzahl erreicht ist – mit Rechenweg zum Nachbesprechen.",
+    ziel:"Die Aufgaben werden passend zur Jahrgangsstufe erzeugt; leichte Aufgaben zählen einen, schwere zwei Punkte. Zu jeder Aufgabe lässt sich der Lösungsweg einblenden, sodass Streitfälle sofort geklärt sind.",
+    punkte:[
+      "Drei Spielmodi: <b>Buzzern</b> (wer zuerst drückt), <b>Abwechselnd</b> (reihum) und <b>Puck</b> (nur das Team mit dem Puck punktet)",
+      "Bereiche je Jahrgangsstufe einzeln zuschaltbar, nicht passende Bereiche sind gesperrt",
+      "Schwierigkeit: nur leicht, gemischt oder nur schwer",
+      "Antwortzeit und Zielpunktzahl frei einstellbar, Teamnamen änderbar",
+      "Eingabe über ein großes Ziffernfeld, Töne abschaltbar"
+    ],
+    keywords:"kopfrechnen duell buzzer team wettbewerb punkte zeit grundwissen"
+  },
+  {
+    file:"Mattle.html", title:"Mattle", tagline:"Das Mathe-Battle ums Spielfeld",
+    icon:"⬢", color:"#0f8f86", fach:["Mathematik"], form:"Team-Duell",
+    stufen:[5,6,7,8,9,10,11], stufenText:"Jahrgangsstufe 5 – 11",
+    sozial:"Ganze Klasse, zwei Teams – am besten über den Beamer",
+    thema:"Kopfrechnen mit Strategie",
+    kurz:"Kopfrechnen trifft Hex: Wer eine Aufgabe löst, erobert das zugehörige Sechseck. Team A muss links und rechts verbinden, Team B oben und unten.",
+    ziel:"Gerechnet wird wie im Kopfrechen-Duell, gewonnen wird aber über das Spielfeld: Es zählt nicht die Punktzahl, sondern die zusammenhängende Kette eroberter Felder. Dadurch kommt es darauf an, welches Feld man sich vornimmt.",
+    punkte:[
+      "Spielfeldgröße 5×5 bis 11×11 (Empfehlung 7×7) – bestimmt die Spieldauer",
+      "Gleiche Spielmodi wie beim Kopfrechen-Duell: Buzzern, Abwechselnd, Puck",
+      "Aufgabengenerator und Bereiche identisch zum Kopfrechen-Duell, Jahrgangsstufe 5 – 11",
+      "Antwortzeit einstellbar, Lösungsweg jederzeit einblendbar",
+      "Teamnamen änderbar, Töne abschaltbar"
+    ],
+    keywords:"hex spielfeld strategie kopfrechnen battle team sechsecke erobern"
+  },
+  {
+    file:"mathe-tabu.html", title:"Mathe-Tabu", tagline:"Erklären ohne die verbotenen Wörter",
+    icon:"🤐", color:"#c1462f", fach:["Mathematik"], form:"Erklärspiel",
+    stufen:[5,6,7,8,9,10,11,12,13], stufenText:"Jahrgangsstufe 5 – 13",
+    sozial:"Zwei Teams, ein iPad wandert zum erklärenden Kind",
+    thema:"Fachbegriffe versprachlichen",
+    kurz:"Ein Begriff, darunter die Tabu-Wörter: erklären, ohne sie zu benutzen. Karte nach rechts wischen heißt erraten, nach links heißt Tabu – Punkte fürs Gegenteam.",
+    ziel:"Eine Runde bedeutet, dass jedes Team einmal erklärt. Am Ende jedes Durchgangs erscheint die Liste aller Karten; dort lässt sich jede Wertung per Tippen korrigieren, falls es Streit gab. Über 400 Karten, streng nach LehrplanPLUS zugeordnet.",
+    punkte:[
+      "Jahrgangsstufe 5 – 13, wahlweise mit oder ohne die Begriffe früherer Stufen",
+      "Themen: Geometrie, Terme &amp; Gleichungen, Funktionen, Stochastik – die Chips zeigen die Kartenzahl",
+      "Schwierigkeit über die Anzahl der Tabu-Wörter (sehr leicht 2 bis schwer 5)",
+      "Zeit pro Durchgang 30 s bis 4 min, 1 bis 10 Runden",
+      "Wischen, Buttons oder Pfeiltasten; Überspringen zuschaltbar; Einstellungen werden gespeichert"
+    ],
+    keywords:"tabu begriffe erklären sprache fachbegriffe wortschatz teams wischen"
+  },
+  {
+    file:"physik-tabu.html", title:"Physik-Tabu", tagline:"Fachsprache trainieren",
+    icon:"🔭", color:"#1d8ba0", fach:["Physik"], form:"Erklärspiel",
+    stufen:[7,8,9,10,11,12,13], stufenText:"Jahrgangsstufe 7 – 13",
+    sozial:"Zwei Teams, ein iPad wandert zum erklärenden Kind",
+    thema:"Physikalische Fachbegriffe versprachlichen",
+    kurz:"Der Physik-Ableger von Mathe-Tabu: gleicher Ablauf, eigene Kartensammlung mit rund 470 Begriffen aus allen Teilgebieten.",
+    ziel:"Erklären, ohne die Tabu-Wörter zu benutzen – rechts wischen für erraten, links für Tabu. Die Karten sind streng nach LehrplanPLUS zugeordnet, Jahrgangsstufe 7 enthält nur den Physikteil aus Natur und Technik.",
+    punkte:[
+      "Themen: Optik, Elektrizitätslehre, Mechanik, Energie, Wärmelehre, Atom- &amp; Kernphysik",
+      "Jahrgangsstufe 7 – 13, wahlweise mit oder ohne frühere Stufen",
+      "Themen ohne Karten in der gewählten Stufe sind gesperrt und beschriftet",
+      "Schwierigkeit über die Anzahl der Tabu-Wörter, Zeit und Rundenzahl einstellbar",
+      "Auswertung nach jedem Durchgang mit korrigierbaren Wertungen"
+    ],
+    keywords:"tabu physik begriffe erklären optik elektrizität mechanik energie wärmelehre kernphysik"
+  },
+  {
+    file:"schiffe-versenken-koordinaten.html", title:"Schiffe versenken", tagline:"Im Koordinatensystem",
+    icon:"⚓", color:"#2f6fa8", fach:["Mathematik"], form:"Duell zu zweit",
+    stufen:[5,6], stufenText:"Klasse 5 (auch 6 zur Wiederholung)",
+    sozial:"Zu zweit am iPad mit Übergabe oder gegen den Computer",
+    thema:"Koordinaten setzen und ablesen",
+    kurz:"Die Schiffe liegen auf den Gitterpunkten eines Koordinatensystems. Geschossen wird mit Zahlenpaaren – entweder eingetippt oder durch Antippen und Ablesen.",
+    ziel:"Jeder Schuss ist eine Koordinatenübung: Wer eintippt, muss den Punkt vorher im Kopf bestimmen; wer antippt, muss das Zahlenpaar richtig ablesen. Verlesene Koordinaten werden erkannt – auch vertauschte x- und y-Werte – und rückgemeldet.",
+    punkte:[
+      "Nur positive Achsen (0 bis 4 – 12) oder mit negativen Zahlen (±2 bis ±6)",
+      "Flotte frei zusammenstellbar: Rettungsboot bis Flugzeugträger, dazu ein Balance-Vorschlag",
+      "Schussart: eintippen, antippen &amp; ablesen oder abwechselnd",
+      "Computergegner in drei Stufen; auf Wunsch findet das Kind die Schüsse des Computers selbst im eigenen Meer",
+      "Optionen: Treffer → nochmal, Schiffe dürfen sich nicht berühren, Weg-Animation (erst x, dann y)"
+    ],
+    keywords:"koordinatensystem koordinaten ablesen zahlenpaar gitterpunkte schiffe versenken achsen negative zahlen"
+  },
+  {
+    file:"raumschiffe-versenken.html", title:"Raumschiffe versenken", tagline:"Im räumlichen Koordinatensystem",
+    icon:"🚀", color:"#6a5acd", fach:["Mathematik"], form:"Duell zu zweit",
+    stufen:[11,12,13], stufenText:"Oberstufe (Vektorgeometrie)",
+    sozial:"Zu zweit am iPad mit Übergabe oder gegen den Computer",
+    thema:"Räumliches Koordinatensystem, Punkte und Vektoren",
+    kurz:"Die Oberstufen-Variante im Raum: Schrägbild wie im Heft, zum Drehen und Zoomen. Geschossen wird auf Punkte (x|y|z) oder mit einem Vektor ab einer Sonde.",
+    ziel:"Weil das Schrägbild mehrdeutig ist, wird zuerst eine Ebene z = k gewählt und dann der Punkt bestimmt. Nach einem Fehlschuss meldet das Radar den Abstand zum nächsten Schiffspunkt – exakt als Wurzel, etwa √8 = 2√2 ≈ 2,83.",
+    punkte:[
+      "Eigene 3D-Darstellung ohne Internet: Schrägbild, frei drehbar, Pinch-Zoom",
+      "Raum 0…3 bis 0…6 oder mit negativen Bereichen; Achsen wahlweise x, y, z oder x₁, x₂, x₃",
+      "Schussarten: Punkt eingeben, Punkt ablesen, mit Vektor (Sonde + Richtungsvektor) oder abwechselnd",
+      "Radar-Abstand als exakter Wurzelterm – trainiert den Abstandsbegriff im Raum",
+      "Computergegner leicht/mittel/schwer, Flottenvorschlag mit Balance-Bewertung"
+    ],
+    keywords:"vektoren raum 3d koordinatensystem schrägbild abstand wurzel oberstufe analytische geometrie punkte"
+  }
+];
+
+/* =====================================================================
+   Rendering & Filter
+   ===================================================================== */
+const $ = (s) => document.querySelector(s);
+const STUFEN = [
+  {id:"5-6",  label:"5 – 6",  test:(g)=>g.stufen.some(s=>s<=6)},
+  {id:"7-8",  label:"7 – 8",  test:(g)=>g.stufen.some(s=>s===7||s===8)},
+  {id:"9-10", label:"9 – 10", test:(g)=>g.stufen.some(s=>s===9||s===10)},
+  {id:"11-13",label:"11 – 13",test:(g)=>g.stufen.some(s=>s>=11)}
+];
+const FORMEN = ["Kartenspiel","Domino","Team-Duell","Erklärspiel","Duell zu zweit"];
+const FAECHER = ["Mathematik","Physik"];
+
+const state = {fach:null, stufe:null, form:null, q:""};
+
+function chip(label, active, onClick){
+  const b = document.createElement("button");
+  b.className = "chip" + (active ? " on" : "");
+  b.type = "button";
+  b.textContent = label;
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function renderFilters(){
+  const fa = $("#fFach"); fa.innerHTML = "";
+  fa.appendChild(chip("Alle", state.fach === null, () => { state.fach = null; render(); }));
+  FAECHER.forEach(f => fa.appendChild(chip(f, state.fach === f, () => { state.fach = (state.fach === f ? null : f); render(); })));
+
+  const st = $("#fStufe"); st.innerHTML = "";
+  st.appendChild(chip("Alle", state.stufe === null, () => { state.stufe = null; render(); }));
+  STUFEN.forEach(s => st.appendChild(chip(s.label, state.stufe === s.id, () => { state.stufe = (state.stufe === s.id ? null : s.id); render(); })));
+
+  const fo = $("#fForm"); fo.innerHTML = "";
+  fo.appendChild(chip("Alle", state.form === null, () => { state.form = null; render(); }));
+  FORMEN.forEach(f => fo.appendChild(chip(f, state.form === f, () => { state.form = (state.form === f ? null : f); render(); })));
+}
+
+function matches(g){
+  if (state.fach && g.fach.indexOf(state.fach) < 0) return false;
+  if (state.form && g.form !== state.form) return false;
+  if (state.stufe){
+    const s = STUFEN.find(x => x.id === state.stufe);
+    if (s && !s.test(g)) return false;
+  }
+  const q = state.q.trim().toLowerCase();
+  if (q){
+    const hay = [g.title, g.tagline, g.thema, g.kurz, g.keywords, g.form, g.stufenText, g.fach.join(" ")]
+      .join(" ").toLowerCase();
+    if (hay.indexOf(q) < 0) return false;
+  }
+  return true;
+}
+
+function card(g){
+  const el = document.createElement("article");
+  el.className = "game";
+  el.style.setProperty("--gc", g.color);
+  el.innerHTML =
+    '<div class="head">' +
+      '<div class="mark">' + g.icon + '</div>' +
+      '<div><h2>' + g.title + '</h2><p class="tagline">' + g.tagline + '</p></div>' +
+    '</div>' +
+    '<div class="body">' +
+      '<p class="desc">' + g.kurz + '</p>' +
+      '<ul class="facts">' +
+        '<li><b>Jahrgang</b><span>' + g.stufenText + '</span></li>' +
+        '<li><b>Thema</b><span>' + g.thema + '</span></li>' +
+        '<li><b>Spielform</b><span>' + g.form + ' · ' + g.sozial + '</span></li>' +
+      '</ul>' +
+    '</div>' +
+    '<div class="actions">' +
+      '<a class="btn play" href="' + encodeURI(g.file) + '" target="_blank" rel="noopener">Spiel öffnen</a>' +
+      '<button class="btn info" type="button">Details</button>' +
+    '</div>';
+  el.querySelector(".btn.info").addEventListener("click", () => openDetails(g));
+  return el;
+}
+
+function render(){
+  renderFilters();
+  const grid = $("#grid");
+  grid.innerHTML = "";
+  const list = GAMES.filter(matches);
+  list.forEach(g => grid.appendChild(card(g)));
+  if (!list.length){
+    const e = document.createElement("div");
+    e.className = "empty";
+    e.textContent = "Kein Spiel passt zu dieser Auswahl.";
+    grid.appendChild(e);
+  }
+  $("#count").textContent = list.length === GAMES.length
+    ? "Alle " + GAMES.length + " Spiele"
+    : list.length + " von " + GAMES.length + " Spielen";
+}
+
+/* ---------------- Detail-Overlay ---------------- */
+function openDetails(g){
+  const sheet = $("#sheet");
+  sheet.style.setProperty("--gc", g.color);
+  sheet.innerHTML =
+    '<div class="shead">' +
+      '<div class="mark" style="width:52px;height:52px;border-radius:15px;display:flex;align-items:center;' +
+        'justify-content:center;font-size:26px;flex:0 0 auto;' +
+        'background:color-mix(in srgb, var(--gc) 16%, transparent);' +
+        'border:1.5px solid color-mix(in srgb, var(--gc) 42%, transparent);">' + g.icon + '</div>' +
+      '<div><h2>' + g.title + '</h2><p class="tagline">' + g.tagline + '</p></div>' +
+    '</div>' +
+    '<div class="sbody">' +
+      '<h3>Worum geht es</h3><p>' + g.kurz + '</p>' +
+      '<h3>So wird gespielt</h3><p>' + g.ziel + '</p>' +
+      '<h3>Einstellungen &amp; Varianten</h3><ul>' + g.punkte.map(p => '<li>' + p + '</li>').join("") + '</ul>' +
+      '<div class="taglist">' +
+        '<span class="tag">' + g.fach.join(" · ") + '</span>' +
+        '<span class="tag">' + g.stufenText + '</span>' +
+        '<span class="tag">' + g.form + '</span>' +
+        '<span class="tag">' + g.sozial + '</span>' +
+        '<span class="tag">' + g.file + '</span>' +
+      '</div>' +
+    '</div>' +
+    '<div class="sfoot">' +
+      '<button class="btn info" type="button" id="mClose" style="flex:0 0 auto;">Schließen</button>' +
+      '<a class="btn play" href="' + encodeURI(g.file) + '" target="_blank" rel="noopener">Spiel öffnen</a>' +
+    '</div>';
+  sheet.querySelector("#mClose").addEventListener("click", closeDetails);
+  $("#modal").classList.add("on");
+}
+function closeDetails(){ $("#modal").classList.remove("on"); }
+$("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeDetails(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeDetails(); });
+
+/* ---------------- Suche & Reset ---------------- */
+$("#q").addEventListener("input", (e) => { state.q = e.target.value; render(); });
+$("#reset").addEventListener("click", () => {
+  state.fach = state.stufe = state.form = null;
+  state.q = ""; $("#q").value = "";
+  render();
+});
+
+render();
+</script>
+</body>
+</html>

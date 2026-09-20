@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Mattle — Mathe-Battle</title>
+<style>
+:root{
+  --bg-0:#0a0f2e; --bg-1:#131a46;
+  --panel:#161d4d; --panel-2:#1d2666; --line:#2d3780;
+  --ink:#eef1ff; --muted:#98a1d4;
+  --a:#22d3ee; --a-deep:#0e7490; --a-glow:rgba(34,211,238,.55);
+  --b:#fb7185; --b-deep:#be123c; --b-glow:rgba(251,113,133,.55);
+  --easy:#34d399; --easy-deep:#047857;
+  --hard:#fbbf24; --hard-deep:#b45309;
+  --radius:20px;
+  --shadow:0 18px 50px rgba(0,0,0,.45);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  color:var(--ink);
+  background:
+    radial-gradient(1200px 700px at 18% -10%, rgba(34,211,238,.10), transparent 60%),
+    radial-gradient(1200px 700px at 82% -10%, rgba(251,113,133,.10), transparent 60%),
+    linear-gradient(160deg,var(--bg-0),var(--bg-1));
+  background-attachment:fixed;
+  user-select:none; -webkit-user-select:none;
+  touch-action:manipulation;
+  overflow:hidden;
+}
+.app{display:flex; flex-direction:column; height:100dvh; padding:clamp(8px,1.4vw,16px); gap:clamp(6px,1vw,12px);}
+
+/* ---------- Top bar ---------- */
+.topbar{display:flex; align-items:center; justify-content:space-between; gap:12px; flex:0 0 auto;}
+.brand{display:flex; align-items:baseline; gap:10px;}
+.brand h1{margin:0; font-size:clamp(1.1rem,2.6vw,1.8rem); font-weight:900; letter-spacing:-.03em;
+  background:linear-gradient(90deg,var(--a),#fff 45%,var(--b)); -webkit-background-clip:text; background-clip:text; color:transparent;}
+.brand .sub{color:var(--muted); font-size:.8rem; font-weight:600; letter-spacing:.06em; text-transform:uppercase;}
+.top-actions{display:flex; gap:10px;}
+.icon-btn{
+  appearance:none; border:1px solid var(--line); background:var(--panel);
+  color:var(--ink); border-radius:14px; padding:10px 16px; font-size:.95rem; font-weight:700;
+  cursor:pointer; transition:transform .08s ease, background .15s, border-color .15s;
+}
+.icon-btn:hover{background:var(--panel-2); border-color:#3a45a0;}
+.icon-btn:active{transform:scale(.96);}
+
+/* ---------- Turn bar ---------- */
+.turnbar{
+  flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:12px;
+  min-height:clamp(40px,5.5vh,56px); border-radius:14px;
+  border:1.5px solid var(--line); background:rgba(13,17,46,.5);
+  font-weight:800; font-size:clamp(.95rem,2.2vw,1.25rem); letter-spacing:-.01em; padding:6px 16px; text-align:center;
+}
+.turnbar .dot{width:14px; height:14px; border-radius:50%; flex:0 0 auto; box-shadow:0 0 14px currentColor;}
+.turnbar.turnA{border-color:var(--a); color:var(--a);}
+.turnbar.turnB{border-color:var(--b); color:var(--b);}
+.turnbar .txt{color:var(--ink);}
+
+/* ---------- Main row ---------- */
+.main{flex:1 1 auto; min-height:0; display:flex; gap:clamp(8px,1.2vw,16px);}
+
+/* ---------- Team panels (= buzzers) ---------- */
+.team{
+  flex:0 0 clamp(120px,15vw,210px); min-width:0;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  border-radius:var(--radius); border:2px solid var(--line);
+  background:linear-gradient(180deg,var(--panel),rgba(13,17,46,.6));
+  padding:clamp(10px,1.6vw,20px) clamp(6px,1vw,14px); position:relative; overflow:hidden;
+  transition:border-color .15s, box-shadow .15s, background .15s, opacity .15s;
+}
+.team[data-side="A"]{--tc:var(--a); --tc-deep:var(--a-deep); --tc-glow:var(--a-glow);}
+.team[data-side="B"]{--tc:var(--b); --tc-deep:var(--b-deep); --tc-glow:var(--b-glow);}
+.team .tname{font-size:clamp(1rem,2.4vw,1.5rem); font-weight:900; letter-spacing:-.02em; color:var(--tc); text-align:center; line-height:1.05;}
+.team .count{font-size:clamp(2rem,5.5vw,3.6rem); font-weight:900; font-variant-numeric:tabular-nums; line-height:1;}
+.team .puck{display:inline-block; font-size:clamp(.72rem,1.6vw,.92rem); font-weight:900; padding:3px 12px; border-radius:999px; background:var(--tc); color:#06122a; letter-spacing:.02em; box-shadow:0 0 16px var(--tc-glow); margin:2px 0 4px;}
+.team .puck.hidden{display:none;}
+.team .count small{display:block; font-size:.32em; font-weight:700; letter-spacing:.08em; color:var(--muted); text-transform:uppercase;}
+.team .dir{font-size:clamp(.66rem,1.5vw,.82rem); color:var(--muted); font-weight:700; text-align:center; line-height:1.25;}
+.team .buzzhint{margin-top:2px; font-size:.78rem; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--tc); opacity:0; transition:opacity .15s;}
+.team.buzzable{cursor:pointer; border-color:var(--tc); box-shadow:0 0 0 2px var(--tc-glow), 0 0 40px var(--tc-glow) inset;}
+.team.buzzable:active{transform:scale(.99);}
+.team.buzzable .buzzhint{opacity:1;}
+.team.active{border-color:var(--tc); box-shadow:0 0 0 3px var(--tc), 0 0 60px var(--tc-glow);
+  background:linear-gradient(180deg,color-mix(in srgb,var(--tc) 14%,var(--panel)),rgba(13,17,46,.6));}
+.team.dim{opacity:.5;}
+.team.turn{border-color:var(--tc); box-shadow:0 0 0 2px var(--tc), 0 0 50px var(--tc-glow);}
+.team.turn .turnflag{opacity:1; transform:translateY(0);}
+.team.flash{animation:flash .5s ease;}
+@keyframes flash{0%,100%{box-shadow:0 0 0 2px var(--tc-glow);}30%{box-shadow:0 0 0 5px var(--tc),0 0 70px var(--tc-glow);}}
+.team .turnflag{position:absolute; top:8px; left:0; right:0; text-align:center; font-size:.7rem; font-weight:900;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--tc); opacity:0; transform:translateY(-6px); transition:.2s;}
+
+/* ---------- Stage / board ---------- */
+.stage{flex:1 1 auto; min-width:0; position:relative; display:flex; align-items:center; justify-content:center;
+  border-radius:var(--radius); border:2px solid var(--line);
+  background:radial-gradient(120% 120% at 50% 0%, rgba(29,38,102,.5), rgba(13,17,46,.25)); overflow:hidden;}
+.board-wrap{position:absolute; inset:clamp(8px,1.6vw,22px); display:flex; align-items:center; justify-content:center;}
+.board{width:100%; height:100%; display:flex; align-items:center; justify-content:center;}
+.board svg{width:100%; height:100%; display:block; overflow:visible;}
+.hex{stroke:#0b1030; stroke-width:1.4; fill:#1b2358; transition:fill .2s, stroke .2s;}
+.hex.empty{fill:#1b2358;}
+.board.choosing.turnA .hex.empty{cursor:pointer;}
+.board.choosing.turnB .hex.empty{cursor:pointer;}
+.board.choosing.turnA .hex.empty:hover{fill:#26337f; stroke:var(--a); stroke-width:2.4;}
+.board.choosing.turnB .hex.empty:hover{fill:#3a2747; stroke:var(--b); stroke-width:2.4;}
+.hex.A{fill:color-mix(in srgb,var(--a) 80%, #0b1030); stroke:var(--a);}
+.hex.B{fill:color-mix(in srgb,var(--b) 80%, #0b1030); stroke:var(--b);}
+.hex.pop{transform-box:fill-box; transform-origin:center; animation:hexpop .42s cubic-bezier(.2,1.5,.4,1);}
+@keyframes hexpop{0%{transform:scale(.2);}60%{transform:scale(1.12);}100%{transform:scale(1);}}
+.hex.win{stroke:#fff; stroke-width:3; animation:hexglow 1s ease-in-out infinite alternate;}
+@keyframes hexglow{from{filter:drop-shadow(0 0 2px #fff);}to{filter:drop-shadow(0 0 12px #fff);}}
+.edge{fill:none; stroke-linecap:round; stroke-linejoin:round; opacity:.92;}
+.edge.A{stroke:var(--a);}
+.edge.B{stroke:var(--b);}
+.edgelabel{font-weight:900; letter-spacing:.06em; text-transform:uppercase;}
+.edgelabel.A{fill:var(--a);}
+.edgelabel.B{fill:var(--b);}
+
+/* ---------- Question card (overlay on board) ---------- */
+.qcard{position:absolute; inset:0; z-index:5; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:clamp(8px,1.4vh,16px); padding:clamp(12px,2.2vw,26px); text-align:center;
+  background:rgba(7,10,30,.78); backdrop-filter:blur(7px); -webkit-backdrop-filter:blur(7px);}
+.qcard.hidden{display:none;}
+.badge{display:inline-flex; align-items:center; gap:8px; font-weight:800; font-size:clamp(.78rem,1.7vw,1rem);
+  border:1.5px solid; border-radius:999px; padding:5px 14px; letter-spacing:.02em;}
+.badge .bdot{width:9px; height:9px; border-radius:50%; background:currentColor;}
+.badge.easy{color:var(--easy); border-color:var(--easy); background:color-mix(in srgb,var(--easy) 12%,transparent);}
+.badge.hard{color:var(--hard); border-color:var(--hard); background:color-mix(in srgb,var(--hard) 12%,transparent);}
+.area-label{color:var(--muted); font-weight:700; letter-spacing:.05em; text-transform:uppercase; font-size:clamp(.7rem,1.6vw,.9rem);}
+.problem{font-size:clamp(1.8rem,6vw,4rem); font-weight:900; letter-spacing:-.01em; line-height:1.1; font-variant-numeric:tabular-nums;}
+/* math notation (Brüche, Wurzeln, Exponenten) — auch in der Lösung */
+.problem sup,.solution sup{font-size:.52em; vertical-align:.78em; font-weight:800; margin-left:.04em; line-height:0;}
+.problem sub,.solution sub{font-size:.5em; vertical-align:-.62em; font-weight:800; line-height:0;}
+.problem .fit,.solution .fit{display:inline-block; white-space:nowrap; transform-origin:center center; flex:0 0 auto;}
+.frac{display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; margin:0 .12em; line-height:1;}
+.frac .fr-n{padding:0 .25em;}
+.frac .fr-d{padding:.06em .25em 0; border-top:.08em solid currentColor;}
+.root{display:inline-flex; align-items:flex-start; white-space:nowrap;}
+.root .rsign{font-size:1.05em; margin-right:-.04em; transform:translateY(-.02em);}
+.root .radicand{border-top:.08em solid currentColor; padding:.06em .12em 0;}
+.num{padding:0 .04em;}
+.timerwrap{display:flex; align-items:center; gap:12px; width:min(440px,80%);}
+.timerwrap.hidden,.keypad.hidden,.ansrow.hidden,.solution.hidden,.reveal-btn.hidden{display:none !important;}
+.timebar{flex:1 1 auto; height:12px; border-radius:999px; background:rgba(255,255,255,.1); overflow:hidden;}
+.timebar i{display:block; height:100%; width:100%; background:var(--easy); border-radius:999px;}
+.timenum{font-weight:900; font-size:clamp(1rem,2.4vw,1.5rem); font-variant-numeric:tabular-nums; min-width:1.4em;}
+.ansrow{width:min(560px,92%); display:flex; align-items:center; justify-content:center;
+  min-height:clamp(46px,7vh,64px); border-radius:14px; border:2px solid var(--ac,var(--line));
+  background:rgba(0,0,0,.3); font-size:clamp(1.6rem,4vw,2.6rem); font-weight:800;
+  font-variant-numeric:tabular-nums; letter-spacing:.02em; padding:0 18px; color:var(--ink);}
+.ansrow .ph{color:var(--muted); font-weight:600; font-size:.5em; letter-spacing:.04em;}
+.keypad{width:min(420px,92%); display:grid; grid-template-columns:repeat(4,1fr); gap:clamp(6px,1vw,10px);}
+.key{appearance:none; border:1.5px solid var(--line); background:var(--panel-2); color:var(--ink);
+  border-radius:14px; font-size:clamp(1.2rem,3vw,1.7rem); font-weight:800;
+  padding:clamp(7px,1.5vh,16px) 0; cursor:pointer; transition:transform .06s, background .12s, border-color .12s;}
+.key:hover{background:#27316f;}
+.key:active{transform:scale(.94);}
+.key.fn{color:var(--muted); font-size:clamp(1rem,2.4vw,1.4rem);}
+.key.ok{background:var(--ac,var(--easy)); color:#06122a; border-color:transparent; font-weight:900; box-shadow:0 8px 22px rgba(0,0,0,.3);}
+.key.ok:hover{filter:brightness(1.06);}
+.status{font-weight:800; font-size:clamp(1rem,2.4vw,1.45rem); text-align:center; min-height:1.4em; letter-spacing:-.01em;}
+.status.good{color:var(--easy);} .status.bad{color:var(--b);} .status.neutral{color:var(--ink);}
+.solution{text-align:center; color:var(--muted); font-weight:600; font-size:clamp(.85rem,1.8vw,1.05rem); line-height:1.4; max-width:680px;}
+.solution b{color:var(--ink); font-weight:800;}
+.reveal-btn{appearance:none; background:none; border:none; color:var(--muted); font-weight:700; font-size:.85rem; text-decoration:underline; cursor:pointer; padding:4px;}
+.reveal-btn:hover{color:var(--ink);}
+
+/* ---------- Bottom bar ---------- */
+.bottombar{flex:0 0 auto; display:flex; align-items:center; justify-content:center; gap:12px;}
+.cta{appearance:none; border:none; border-radius:16px; padding:13px 26px; font-size:1.05rem; font-weight:800;
+  cursor:pointer; color:#06122a; background:linear-gradient(180deg,#fff,#cfe0ff); box-shadow:var(--shadow); transition:transform .08s, filter .15s;}
+.cta:hover{filter:brightness(1.04);} .cta:active{transform:scale(.97);}
+.cta.ghost{background:var(--panel); color:var(--ink); border:1.5px solid var(--line); box-shadow:none;}
+.cta.ghost:hover{background:var(--panel-2);}
+
+/* ---------- Overlays (settings) ---------- */
+.overlay{position:fixed; inset:0; z-index:40; display:flex; align-items:center; justify-content:center; padding:18px;
+  background:rgba(5,8,24,.72); backdrop-filter:blur(6px);}
+.overlay.hidden{display:none;}
+.modal{width:min(680px,96vw); max-height:92dvh; overflow:auto; background:linear-gradient(180deg,var(--panel),#10153a);
+  border:1.5px solid var(--line); border-radius:22px; padding:clamp(18px,3vw,30px); box-shadow:var(--shadow);}
+.modal h2{margin:0 0 4px; font-size:clamp(1.3rem,3vw,1.8rem); font-weight:900;}
+.modal .lead{margin:0 0 18px; color:var(--muted); font-weight:600;}
+.field{margin-bottom:18px;}
+.lbl{display:block; font-weight:800; margin-bottom:8px; font-size:.98rem;}
+.help{color:var(--muted); font-size:.82rem; margin-top:6px; font-weight:600;}
+.inp{width:100%; border:1.5px solid var(--line); background:var(--panel); color:var(--ink); border-radius:12px; padding:12px 14px; font-size:1.05rem; font-weight:700; font-family:inherit;}
+.inp:focus{outline:none; border-color:var(--a);}
+.checks{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:8px;}
+.chk{display:flex; align-items:center; gap:10px; padding:11px 13px; border:1.5px solid var(--line); border-radius:12px; background:var(--panel); cursor:pointer; font-weight:700; transition:border-color .15s, background .15s;}
+.chk input{width:20px; height:20px; accent-color:var(--a); cursor:pointer;}
+.chk:hover{border-color:#3a45a0;}
+.chk.disabled{opacity:.4; cursor:not-allowed;}
+.chk.disabled input{cursor:not-allowed;}
+.seg{display:inline-flex; border:1.5px solid var(--line); border-radius:12px; overflow:hidden; background:var(--panel); flex-wrap:wrap;}
+.seg button{appearance:none; border:none; background:none; color:var(--muted); font-weight:800; padding:11px 18px; cursor:pointer; font-size:.95rem; transition:background .15s, color .15s;}
+.seg button.on{background:var(--panel-2); color:var(--ink);}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+.stepper{display:inline-flex; align-items:center; gap:0; border:1.5px solid var(--line); border-radius:12px; overflow:hidden; background:var(--panel);}
+.stepper button{appearance:none; border:none; background:var(--panel-2); color:var(--ink); width:46px; height:46px; font-size:1.4rem; font-weight:900; cursor:pointer;}
+.stepper button:active{background:#2b3578;}
+.stepper input{width:64px; text-align:center; border:none; background:none; color:var(--ink); font-size:1.2rem; font-weight:800; font-family:inherit;}
+.stepper input:focus{outline:none;}
+.switch{display:flex; align-items:center; gap:12px; font-weight:700;}
+.switch input{width:46px; height:26px; appearance:none; background:var(--line); border-radius:999px; position:relative; cursor:pointer; transition:background .2s;}
+.switch input:checked{background:var(--a-deep);}
+.switch input::after{content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .2s;}
+.switch input:checked::after{transform:translateX(20px);}
+.modal-actions{display:flex; justify-content:flex-end; gap:12px; margin-top:8px;}
+
+/* ---------- Win overlay ---------- */
+.win{position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; text-align:center; background:rgba(5,8,24,.86); backdrop-filter:blur(8px);}
+.win.hidden{display:none;}
+.win .trophy{font-size:clamp(4rem,14vw,9rem); animation:pop .6s cubic-bezier(.2,1.4,.4,1) both;}
+@keyframes pop{0%{transform:scale(0) rotate(-20deg);}100%{transform:scale(1) rotate(0);}}
+.win h2{margin:0; font-size:clamp(2rem,7vw,4rem); font-weight:900; letter-spacing:-.02em;}
+.win .final{color:var(--muted); font-size:clamp(1rem,2.6vw,1.4rem); font-weight:700;}
+.win .final .pa{color:var(--a);} .win .final .pb{color:var(--b);}
+.win-actions{display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-top:10px;}
+.confetti{position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:59;}
+.confetti i{position:absolute; top:-12px; width:11px; height:16px; border-radius:2px; animation:fall linear forwards;}
+@keyframes fall{to{transform:translateY(108vh) rotate(720deg);}}
+
+/* ---------- Intro animation ---------- */
+.intro{position:fixed; inset:0; z-index:80; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:26px;
+  background:radial-gradient(900px 600px at 50% 40%, #1a2360, #070a1e 75%); overflow:hidden;}
+.intro.hidden{display:none;}
+.intro .merge{position:relative; height:clamp(80px,20vh,180px); width:min(96vw,900px); display:flex; align-items:center; justify-content:center;}
+.intro .word{position:absolute; font-weight:900; letter-spacing:-.02em; font-size:clamp(2.4rem,11vw,7rem); line-height:1; white-space:nowrap;}
+.intro .mathe{color:var(--a); animation:fromLeft 1.5s cubic-bezier(.3,.8,.2,1) forwards;}
+.intro .battle{color:var(--b); animation:fromRight 1.5s cubic-bezier(.3,.8,.2,1) forwards;}
+.intro .plus{color:var(--muted); font-size:clamp(1.6rem,7vw,4rem); animation:plusFade 1.5s ease forwards;}
+.intro .mattle{font-size:clamp(3rem,15vw,9rem); font-weight:900; letter-spacing:-.03em;
+  background:linear-gradient(90deg,var(--a),#fff 50%,var(--b)); -webkit-background-clip:text; background-clip:text; color:transparent;
+  opacity:0; transform:scale(.4); animation:mattleIn 1s cubic-bezier(.2,1.6,.4,1) 1.55s forwards;}
+.intro .tag{color:var(--muted); font-weight:700; letter-spacing:.12em; text-transform:uppercase; font-size:clamp(.8rem,2.2vw,1.1rem);
+  opacity:0; animation:tagIn .6s ease 2.35s forwards;}
+.intro .start{opacity:0; animation:tagIn .6s ease 2.6s forwards;}
+@keyframes fromLeft{0%{transform:translateX(-58vw) rotate(-8deg); opacity:0;}55%{opacity:1;}75%{transform:translateX(-3vw) rotate(0); opacity:1;}100%{transform:translateX(0) scale(.5); opacity:0;}}
+@keyframes fromRight{0%{transform:translateX(58vw) rotate(8deg); opacity:0;}55%{opacity:1;}75%{transform:translateX(3vw) rotate(0); opacity:1;}100%{transform:translateX(0) scale(.5); opacity:0;}}
+@keyframes plusFade{0%,40%{opacity:0;}55%{opacity:1; transform:scale(1);}80%{opacity:1;}100%{opacity:0; transform:scale(.3);}}
+@keyframes mattleIn{0%{opacity:0; transform:scale(.4) rotate(-6deg);}60%{opacity:1; transform:scale(1.12) rotate(0);}100%{opacity:1; transform:scale(1);}}
+@keyframes tagIn{to{opacity:1;}}
+.spark{position:absolute; width:10px; height:10px; border-radius:50%; pointer-events:none;}
+
+@media (prefers-reduced-motion:reduce){
+  .intro .mathe,.intro .battle,.intro .plus{animation:none; opacity:0;}
+  .intro .mattle{animation:none; opacity:1; transform:none;}
+  .intro .tag,.intro .start{animation:none; opacity:1;}
+  *{animation-duration:.001ms !important;}
+}
+
+/* ---------- Responsive (portrait / small) ---------- */
+@media (max-width:820px){
+  .main{flex-direction:row;}
+  .team{flex:0 0 clamp(92px,22vw,150px);}
+  .team .count{font-size:clamp(1.6rem,7vw,2.6rem);}
+}
+@media (max-width:560px){
+  .team .dir{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <h1>Mattle</h1>
+      <span class="sub">Mathe · Battle</span>
+    </div>
+    <div class="top-actions">
+      <button class="icon-btn" id="btnSolution">Lösung</button>
+      <button class="icon-btn" id="btnSettings">⚙ Einstellungen</button>
+    </div>
+  </div>
+
+  <div class="turnbar" id="turnbar"><span class="txt">Bereit.</span></div>
+
+  <div class="main">
+
+    <div class="team" data-side="A" id="teamA" role="button" tabindex="0" aria-label="Buzzer Team A">
+      <div class="turnflag">Am Zug</div>
+      <div class="tname" id="nameA">Team A</div>
+      <div class="puck hidden" id="puckA">🏒 Puck</div>
+      <div class="count" id="countA">0<small>Felder</small></div>
+      <div class="dir">↔ verbinde&nbsp;links&nbsp;&amp;&nbsp;rechts</div>
+      <div class="buzzhint">Buzzern</div>
+    </div>
+
+    <div class="stage">
+      <div class="board-wrap"><div class="board" id="board"></div></div>
+
+      <div class="qcard hidden" id="qcard">
+        <div class="badge easy" id="badge"><span class="bdot"></span><span id="badgeText">Leicht</span></div>
+        <div class="area-label" id="areaLabel"></div>
+        <div class="problem" id="problem"></div>
+
+        <div class="timerwrap hidden" id="timerwrap">
+          <div class="timebar"><i id="timebar"></i></div>
+          <div class="timenum" id="timenum">8</div>
+        </div>
+
+        <div class="ansrow hidden" id="ansrow"><span class="ph" id="ansph">Antwort eingeben …</span></div>
+        <div class="keypad hidden" id="keypad"></div>
+
+        <div class="status neutral" id="status"></div>
+        <div class="solution hidden" id="solution"></div>
+        <button class="reveal-btn hidden" id="revealInline">Lösung anzeigen &amp; Runde beenden</button>
+      </div>
+    </div>
+
+    <div class="team" data-side="B" id="teamB" role="button" tabindex="0" aria-label="Buzzer Team B">
+      <div class="turnflag">Am Zug</div>
+      <div class="tname" id="nameB">Team B</div>
+      <div class="puck hidden" id="puckB">🏒 Puck</div>
+      <div class="count" id="countB">0<small>Felder</small></div>
+      <div class="dir">↕ verbinde&nbsp;oben&nbsp;&amp;&nbsp;unten</div>
+      <div class="buzzhint">Buzzern</div>
+    </div>
+
+  </div>
+
+  <div class="bottombar">
+    <button class="cta ghost" id="btnReset">Spiel neu starten</button>
+  </div>
+</div>
+
+<!-- ---------- Settings ---------- -->
+<div class="overlay hidden" id="settingsOverlay">
+  <div class="modal">
+    <h2>Einstellungen</h2>
+    <p class="lead">Jahrgangsstufe, Bereiche, Spielfeld und Regeln festlegen.</p>
+
+    <div class="field">
+      <label class="lbl" for="selGrade">Jahrgangsstufe</label>
+      <select class="inp" id="selGrade">
+        <option value="5">Jahrgangsstufe 5</option>
+        <option value="6">Jahrgangsstufe 6</option>
+        <option value="7">Jahrgangsstufe 7</option>
+        <option value="8">Jahrgangsstufe 8</option>
+        <option value="9">Jahrgangsstufe 9</option>
+        <option value="10">Jahrgangsstufe 10</option>
+        <option value="11">Jahrgangsstufe 11</option>
+      </select>
+      <div class="help">Die Jahrgangsstufe gibt vor, welche Bereiche verfügbar sind.</div>
+    </div>
+
+    <div class="field">
+      <label class="lbl">Bereiche</label>
+      <div class="checks" id="areaChecks"></div>
+      <div class="help">Graue Bereiche sind in dieser Jahrgangsstufe noch nicht dran.</div>
+    </div>
+
+    <div class="field">
+      <label class="lbl">Schwierigkeit</label>
+      <div class="seg" id="segDiff" role="group">
+        <button data-v="easy">Nur leicht</button>
+        <button data-v="mixed">Gemischt</button>
+        <button data-v="hard">Nur schwer</button>
+      </div>
+      <div class="help">Schwere Aufgaben nutzen größere Zahlen oder Rechengesetze.</div>
+    </div>
+
+    <div class="field">
+      <label class="lbl">Spielmodus</label>
+      <div class="seg" id="segMode" role="group">
+        <button data-v="buzz">Buzzern</button>
+        <button data-v="alt">Abwechselnd</button>
+        <button data-v="puck">Puck</button>
+      </div>
+      <div class="help"><b>Buzzern:</b> wer zuerst buzzert. <b>Abwechselnd:</b> das Zug-Team wählt sein Sechseck und beantwortet es selbst — nur bei einer falschen Antwort kommt das andere Team dran. <b>Puck:</b> nur das Team mit dem Puck erobert Felder; das andere muss den Puck erst durch eine richtige Lösung gewinnen (dauert länger).</div>
+    </div>
+
+    <div class="field">
+      <label class="lbl">Spielfeldgröße</label>
+      <div class="seg" id="segSize" role="group">
+        <button data-v="5">5 × 5</button>
+        <button data-v="7">7 × 7</button>
+        <button data-v="9">9 × 9</button>
+        <button data-v="11">11 × 11</button>
+      </div>
+      <div class="help">Mehr Felder = längere Partie. Empfehlung: 7 × 7.</div>
+    </div>
+
+    <div class="row2">
+      <div class="field">
+        <label class="lbl" for="inpTime">Antwortzeit (Sekunden)</label>
+        <div class="stepper"><button data-step="time" data-d="-1">−</button><input id="inpTime" type="text" inputmode="numeric" value="8"><button data-step="time" data-d="1">+</button></div>
+      </div>
+      <div class="field">
+        <label class="lbl">Beginnt</label>
+        <div class="seg" id="segStart" role="group">
+          <button data-v="random">Zufall</button>
+          <button data-v="A">Team A</button>
+          <button data-v="B">Team B</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="field"><label class="lbl" for="inpNameA">Name Team A</label><input class="inp" id="inpNameA" value="Team A" maxlength="18"></div>
+      <div class="field"><label class="lbl" for="inpNameB">Name Team B</label><input class="inp" id="inpNameB" value="Team B" maxlength="18"></div>
+    </div>
+
+    <div class="field">
+      <label class="switch"><input type="checkbox" id="chkSound" checked> Töne abspielen</label>
+    </div>
+
+    <div class="modal-actions">
+      <button class="cta ghost" id="btnSettingsClose">Schließen</button>
+      <button class="cta" id="btnSettingsSave">Speichern &amp; neues Spiel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ---------- Win ---------- -->
+<div class="confetti hidden" id="confetti"></div>
+<div class="win hidden" id="winOverlay">
+  <div class="trophy">🏆</div>
+  <h2 id="winTitle">Team A gewinnt!</h2>
+  <div class="final" id="winFinal"></div>
+  <div class="win-actions">
+    <button class="cta" id="btnPlayAgain">Neues Spiel</button>
+    <button class="cta ghost" id="btnWinSettings">⚙ Einstellungen</button>
+  </div>
+</div>
+
+<!-- ---------- Intro ---------- -->
+<div class="intro" id="intro">
+  <div class="merge">
+    <span class="word mathe">Mathe</span>
+    <span class="word plus">+</span>
+    <span class="word battle">Battle</span>
+    <span class="word mattle">Mattle</span>
+  </div>
+  <div class="tag">Das Mathe-Battle ums Spielfeld</div>
+  <button class="cta start" id="btnStart">Los geht's</button>
+</div>
+
+<script>
+/* gen */
+/* ============================================================
+   Kopfrechen-Duell — Aufgabengenerator
+   Jeder Generator liefert: { html, answer, hint, area, difficulty }
+   - html:   angezeigte Aufgabe (HTML)
+   - answer: exakter Zahlenwert der Lösung
+   - hint:   kurzer Rechenweg (Text) für die Spielleitung
+   ============================================================ */
+
+// ---------- Zufalls-Helfer ----------
+function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+function choice(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// ---------- Zahl-Formatierung (deutsches Dezimalkomma) ----------
+function fmt(n) {
+  if (!isFinite(n)) return String(n);
+  // auf 10 Nachkommastellen runden, Komma-Notation, Nullen entfernen
+  let s = (Math.round(n * 1e10) / 1e10).toString();
+  return s.replace('.', ',');
+}
+
+// ---------- Brüche ----------
+function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { [a, b] = [b, a % b]; } return a || 1; }
+function frac(n, d) {
+  if (d < 0) { n = -n; d = -d; }
+  const g = gcd(n, d);
+  return { n: n / g, d: d / g };
+}
+function fracAdd(a, b) { return frac(a.n * b.d + b.n * a.d, a.d * b.d); }
+function fracSub(a, b) { return frac(a.n * b.d - b.n * a.d, a.d * b.d); }
+function fracMul(a, b) { return frac(a.n * b.n, a.d * b.d); }
+function fracDiv(a, b) { return frac(a.n * b.d, a.d * b.n); }
+function fracVal(a) { return a.n / a.d; }
+// teilerfremder Zähler in [1, d-1] → Bruch ist bereits gekürzt
+function coNum(d) {
+  const cands = [];
+  for (let k = 1; k < d; k++) if (gcd(k, d) === 1) cands.push(k);
+  return choice(cands);
+}
+// Bruch als HTML (gestapelt). Ganze Zahlen ohne Bruchstrich.
+function fracHTML(n, d) {
+  if (d === 1) return `<span class="num">${n}</span>`;
+  const sign = n < 0 ? '<span class="num">−</span>' : '';
+  return `${sign}<span class="frac"><span class="fr-n">${Math.abs(n)}</span><span class="fr-d">${d}</span></span>`;
+}
+
+// ---------- Wurzel & Log als HTML ----------
+function rootHTML(inner) { return `<span class="root"><span class="rsign">√</span><span class="radicand">${inner}</span></span>`; }
+function powHTML(base, exp) { return `${base}<sup>${exp}</sup>`; }
+function logHTML(base, arg) { return `log<sub>${base}</sub>(${arg})`; }
+
+// ============================================================
+//  BEREICH-GENERATOREN
+//  Jeder Bereich hat easy() und hard().
+// ============================================================
+const GEN = {
+
+  // ---------------- Ganze Zahlen ----------------
+  ganze: {
+    name: 'Ganze Zahlen',
+    easy(grade) {
+      const big = grade >= 7;
+      const type = choice(['add', 'sub', 'mulkl', 'mulmittel']);
+      if (type === 'add') {
+        const a = randInt(big ? 23 : 11, big ? 89 : 49);
+        const b = randInt(big ? 23 : 11, big ? 89 : 49);
+        return { html: `${a} + ${b}`, answer: a + b, hint: `${a}+${b} = ${a + b}` };
+      }
+      if (type === 'sub') {
+        const a = randInt(big ? 45 : 25, 99);
+        const b = randInt(11, a - 1);
+        return { html: `${a} − ${b}`, answer: a - b, hint: `${a}−${b} = ${a - b}` };
+      }
+      if (type === 'mulkl') {
+        const a = randInt(3, 9), b = randInt(3, 9);
+        return { html: `${a} · ${b}`, answer: a * b, hint: `kleines Einmaleins: ${a * b}` };
+      }
+      // einstellig · zweistellig
+      const a = randInt(3, 8), b = randInt(11, 19);
+      return { html: `${a} · ${b}`, answer: a * b, hint: `${a}·${b} = ${a * b}` };
+    },
+    hard(grade) {
+      const type = choice(['distrib', 'distrib', 'fastrund', 'diffquad', 'schoen']);
+      if (type === 'distrib') {
+        // a·b + a·c  mit b+c = runde Zahl  → a·(b+c)
+        const a = randInt(3, 24);
+        const sum = choice([10, 100, 100, 1000]);
+        const b = randInt(1, sum - 1);
+        const c = sum - b;
+        return {
+          html: `${a} · ${b} + ${a} · ${c}`,
+          answer: a * sum,
+          hint: `Distributivgesetz: ${a}·(${b}+${c}) = ${a}·${sum} = ${a * sum}`
+        };
+      }
+      if (type === 'fastrund') {
+        // a · 99 / 101 / 98 / 102 (zweistellig) bzw. · 999 / 1001 (kleiner)
+        const f = choice([99, 101, 98, 102, 999, 1001]);
+        const round = f >= 998 ? 1000 : 100;
+        const a = f >= 998 ? randInt(11, 29) : randInt(12, 89);
+        const diff = f - round;
+        return {
+          html: `${a} · ${f}`,
+          answer: a * f,
+          hint: `${a}·${f} = ${a}·${round} ${diff < 0 ? '−' : '+'} ${a}·${Math.abs(diff)} = ${a * f}`
+        };
+      }
+      if (type === 'diffquad') {
+        // (n−k)(n+k) = n²−k²
+        const n = choice([20, 30, 40, 50, 60, 70, 80, 90, 100, 25, 15]);
+        const k = randInt(1, Math.min(9, n - 2));
+        return {
+          html: `${n - k} · ${n + k}`,
+          answer: (n - k) * (n + k),
+          hint: `3. binom. Formel: ${n}²−${k}² = ${n * n}−${k * k} = ${(n - k) * (n + k)}`
+        };
+      }
+      if (type === 'schoen') {
+        // geschickt zerlegen: 25·…, 8·125, 4·25, 5·…
+        const opts = [
+          { a: 25, b: choice([4, 8, 12, 16, 24, 28, 36, 44]) },
+          { a: 4, b: 25 },
+          { a: 8, b: 125 },
+          { a: 5, b: choice([14, 16, 18, 22, 24, 26]) },
+          { a: 50, b: choice([6, 8, 12, 14, 18]) },
+          { a: 125, b: choice([8, 16, 24]) },
+        ];
+        const o = choice(opts);
+        return { html: `${o.a} · ${o.b}`, answer: o.a * o.b, hint: `geschickt zerlegen: ${o.a}·${o.b} = ${o.a * o.b}` };
+      }
+    }
+  },
+
+  // ---------------- Brüche ----------------
+  brueche: {
+    name: 'Brüche',
+    easy(grade) {
+      const type = choice(['addgleich', 'addgleich', 'subgleich', 'mul', 'mulganz']);
+      const dens = [2, 3, 4, 5, 6, 8];
+      if (type === 'addgleich') {
+        const d = choice(dens);
+        let a = randInt(1, d - 1), b = randInt(1, d - 1);
+        const r = fracAdd({ n: a, d }, { n: b, d });
+        return { html: `${fracHTML(a, d)} + ${fracHTML(b, d)}`, answer: fracVal(r), hint: `${a}/${d} + ${b}/${d} = ${r.n}/${r.d}` };
+      }
+      if (type === 'subgleich') {
+        const d = choice([3, 4, 5, 6, 8]);
+        let a = randInt(2, d - 1), b = randInt(1, a - 1);
+        const r = fracSub({ n: a, d }, { n: b, d });
+        return { html: `${fracHTML(a, d)} − ${fracHTML(b, d)}`, answer: fracVal(r), hint: `${a}/${d} − ${b}/${d} = ${r.n}/${r.d}` };
+      }
+      if (type === 'mul') {
+        const d1 = choice([2, 3, 4, 5]), d2 = choice([2, 3, 4, 5]);
+        const n1 = coNum(d1), n2 = coNum(d2);
+        const r = fracMul({ n: n1, d: d1 }, { n: n2, d: d2 });
+        return { html: `${fracHTML(n1, d1)} · ${fracHTML(n2, d2)}`, answer: fracVal(r), hint: `Zähler·Zähler, Nenner·Nenner = ${r.n}/${r.d}` };
+      }
+      // Bruch · ganze Zahl
+      const d = choice([2, 3, 4, 5, 6]);
+      const n = coNum(d);
+      const k = randInt(2, 6);
+      const r = fracMul({ n, d }, { n: k, d: 1 });
+      return { html: `${fracHTML(n, d)} · ${k}`, answer: fracVal(r), hint: `${n}/${d}·${k} = ${r.n}/${r.d}` };
+    },
+    hard(grade) {
+      const type = choice(['addungleich', 'addungleich', 'div', 'mulkuerz', 'subungleich']);
+      if (type === 'addungleich' || type === 'subungleich') {
+        const pairs = [[2, 3], [2, 5], [3, 4], [3, 5], [4, 6], [3, 6], [5, 6], [2, 6], [4, 5], [3, 8], [4, 8], [2, 8]];
+        const [d1, d2] = choice(pairs);
+        const n1 = coNum(d1), n2 = coNum(d2);
+        if (type === 'addungleich') {
+          const r = fracAdd({ n: n1, d: d1 }, { n: n2, d: d2 });
+          return { html: `${fracHTML(n1, d1)} + ${fracHTML(n2, d2)}`, answer: fracVal(r), hint: `gleichnamig machen = ${r.n}/${r.d}` };
+        } else {
+          let A = { n: n1, d: d1 }, B = { n: n2, d: d2 };
+          if (fracVal(A) < fracVal(B)) [A, B] = [B, A];
+          const r = fracSub(A, B);
+          return { html: `${fracHTML(A.n, A.d)} − ${fracHTML(B.n, B.d)}`, answer: fracVal(r), hint: `gleichnamig machen = ${r.n}/${r.d}` };
+        }
+      }
+      if (type === 'div') {
+        const d1 = choice([2, 3, 4, 5, 6]), d2 = choice([2, 3, 4, 5]);
+        const n1 = coNum(d1), n2 = coNum(d2);
+        const A = { n: n1, d: d1 }, B = { n: n2, d: d2 };
+        const r = fracDiv(A, B);
+        return { html: `${fracHTML(n1, d1)} : ${fracHTML(n2, d2)}`, answer: fracVal(r), hint: `mit Kehrbruch malnehmen = ${r.n}/${r.d}` };
+      }
+      // Bruch · ganze Zahl (Vielfaches des Nenners) → ganze Zahl
+      const d = choice([3, 4, 6, 8, 5, 7]);
+      const n = coNum(d);
+      const k = d * randInt(2, 4);
+      const r = fracMul({ n, d }, { n: k, d: 1 });
+      return { html: `${fracHTML(n, d)} · ${k}`, answer: fracVal(r), hint: `${k} ist Vielfaches von ${d}, kürzen = ${r.n / r.d}` };
+    }
+  },
+
+  // ---------------- Dezimalbrüche ----------------
+  dezimal: {
+    name: 'Dezimalbrüche',
+    easy(grade) {
+      const type = choice(['add', 'sub', 'mulganz', 'add']);
+      const r10 = () => randInt(1, 9) / 10;
+      if (type === 'add') {
+        const a = randInt(1, 19) / 10, b = randInt(1, 19) / 10;
+        return { html: `${fmt(a)} + ${fmt(b)}`, answer: a + b, hint: `${fmt(a)}+${fmt(b)} = ${fmt(a + b)}` };
+      }
+      if (type === 'sub') {
+        let a = randInt(5, 25) / 10, b = randInt(1, Math.round(a * 10) - 1) / 10;
+        return { html: `${fmt(a)} − ${fmt(b)}`, answer: a - b, hint: `${fmt(a)}−${fmt(b)} = ${fmt(a - b)}` };
+      }
+      // Dezimalzahl · ganze Zahl
+      const a = randInt(1, 9) / 10, k = randInt(2, 9);
+      return { html: `${fmt(a)} · ${k}`, answer: a * k, hint: `${fmt(a)}·${k} = ${fmt(a * k)}` };
+    },
+    hard(grade) {
+      const opts = [
+        { a: 0.25, b: choice([4, 8, 12, 16, 20, 24, 40, 48]) },
+        { a: 0.5, b: choice([6, 8, 12, 14, 18, 24]) },
+        { a: 0.125, b: choice([8, 16, 24, 32]) },
+        { a: 2.5, b: choice([4, 8, 12, 6, 20]) },
+        { a: 0.2, b: choice([15, 25, 35, 45, 30]) },
+        { a: 1.5, b: choice([6, 8, 12, 14]) },
+        { a: 0.75, b: choice([4, 8, 12, 40, 20]) },
+        { a: 12.5, b: choice([4, 8, 16]) },
+        { a: 0.1, b: choice([0.1, 0.5, 0.3, 0.7]) },
+        { a: 0.4, b: choice([15, 25, 35]) },
+      ];
+      const o = choice(opts);
+      return { html: `${fmt(o.a)} · ${fmt(o.b)}`, answer: o.a * o.b, hint: `geschickt: ${fmt(o.a)}·${fmt(o.b)} = ${fmt(o.a * o.b)}` };
+    }
+  },
+
+  // ---------------- Potenzen ----------------
+  potenzen: {
+    name: 'Potenzen',
+    easy(grade) {
+      const opts = [
+        [2, 2], [2, 3], [2, 4], [2, 5], [2, 6], [3, 2], [3, 3], [3, 4],
+        [4, 2], [4, 3], [5, 2], [5, 3], [6, 2], [7, 2], [8, 2], [9, 2],
+        [10, 2], [10, 3], [10, 4], [11, 2], [12, 2], [1, 5], [13, 2]
+      ];
+      const [b, e] = choice(opts);
+      return { html: powHTML(b, e), answer: Math.pow(b, e), hint: `${b}^${e} = ${Math.pow(b, e)}` };
+    },
+    hard(grade) {
+      const types = ['mul', 'div', 'powpow', 'neg'];
+      if (grade >= 10) types.push('rational', 'rational');
+      const type = choice(types);
+      if (type === 'mul') {
+        // Basis gleich, Exponenten addieren — Ergebnis ≤ 1024
+        const o = choice([
+          { b: 2, e1: 2, e2: 3 }, { b: 2, e1: 3, e2: 4 }, { b: 2, e1: 2, e2: 5 }, { b: 2, e1: 4, e2: 4 },
+          { b: 3, e1: 2, e2: 2 }, { b: 3, e1: 2, e2: 3 }, { b: 5, e1: 1, e2: 2 }, { b: 5, e1: 2, e2: 1 },
+          { b: 10, e1: 2, e2: 1 }, { b: 10, e1: 2, e2: 2 },
+        ]);
+        return { html: `${powHTML(o.b, o.e1)} · ${powHTML(o.b, o.e2)}`, answer: Math.pow(o.b, o.e1 + o.e2), hint: `Exponenten addieren: ${o.b}^${o.e1 + o.e2} = ${Math.pow(o.b, o.e1 + o.e2)}` };
+      }
+      if (type === 'div') {
+        const o = choice([
+          { b: 2, e1: 5, e2: 2 }, { b: 2, e1: 6, e2: 3 }, { b: 2, e1: 7, e2: 4 }, { b: 2, e1: 8, e2: 6 },
+          { b: 3, e1: 4, e2: 2 }, { b: 3, e1: 5, e2: 3 }, { b: 5, e1: 3, e2: 1 }, { b: 10, e1: 4, e2: 2 },
+          { b: 10, e1: 5, e2: 2 }, { b: 10, e1: 3, e2: 1 },
+        ]);
+        return { html: `${powHTML(o.b, o.e1)} : ${powHTML(o.b, o.e2)}`, answer: Math.pow(o.b, o.e1 - o.e2), hint: `Exponenten subtrahieren: ${o.b}^${o.e1 - o.e2} = ${Math.pow(o.b, o.e1 - o.e2)}` };
+      }
+      if (type === 'powpow') {
+        // Potenz einer Potenz — Ergebnis ≤ 1000
+        const o = choice([
+          { b: 2, e1: 2, e2: 3 }, { b: 2, e1: 3, e2: 2 }, { b: 2, e1: 2, e2: 2 }, { b: 2, e1: 2, e2: 4 },
+          { b: 3, e1: 2, e2: 2 }, { b: 3, e1: 1, e2: 4 }, { b: 5, e1: 1, e2: 3 }, { b: 10, e1: 1, e2: 3 },
+          { b: 2, e1: 5, e2: 2 },
+        ]);
+        return { html: `(${powHTML(o.b, o.e1)})<sup>${o.e2}</sup>`, answer: Math.pow(o.b, o.e1 * o.e2), hint: `Exponenten multiplizieren: ${o.b}^${o.e1 * o.e2} = ${Math.pow(o.b, o.e1 * o.e2)}` };
+      }
+      if (type === 'neg') {
+        const b = choice([2, 3, 4, 5, 10]);
+        const e = choice([1, 2, 2, 3]);
+        const val = Math.pow(b, -e);
+        return { html: powHTML(b, '−' + e), answer: val, hint: `${b}^(−${e}) = 1/${Math.pow(b, e)} = ${fmt(val)}` };
+      }
+      // rationale Exponenten (ab Jgst 10)
+      const r = choice([
+        { base: 16, exp: '1/2', val: 4 }, { base: 25, exp: '1/2', val: 5 },
+        { base: 27, exp: '1/3', val: 3 }, { base: 8, exp: '1/3', val: 2 },
+        { base: 8, exp: '2/3', val: 4 }, { base: 16, exp: '3/4', val: 8 },
+        { base: 64, exp: '1/3', val: 4 }, { base: 32, exp: '1/5', val: 2 },
+        { base: 81, exp: '1/4', val: 3 }, { base: 100, exp: '1/2', val: 10 },
+        { base: 9, exp: '3/2', val: 27 }, { base: 4, exp: '5/2', val: 32 },
+      ]);
+      return { html: powHTML(r.base, r.exp), answer: r.val, hint: `${r.base}^(${r.exp}) = ${r.val}` };
+    }
+  },
+
+  // ---------------- Wurzeln ----------------
+  wurzeln: {
+    name: 'Wurzeln',
+    easy(grade) {
+      const sq = choice([4, 9, 16, 25, 36, 49, 64, 81, 100, 121, 144, 169, 196, 225, 400, 900, 256, 324]);
+      return { html: rootHTML(sq), answer: Math.sqrt(sq), hint: `√${sq} = ${Math.sqrt(sq)}` };
+    },
+    hard(grade) {
+      const type = choice(['prod', 'prod', 'quot', 'square']);
+      if (type === 'prod') {
+        // √a · √b mit a·b = Quadratzahl
+        const pairs = [[2, 18], [2, 8], [2, 32], [2, 50], [3, 12], [3, 27], [3, 48], [5, 20], [5, 45], [6, 24], [6, 54], [7, 28], [2, 72], [8, 2], [12, 3], [10, 40], [5, 80], [3, 75]];
+        const [a, b] = choice(pairs);
+        const v = Math.sqrt(a * b);
+        return { html: `${rootHTML(a)} · ${rootHTML(b)}`, answer: v, hint: `√(${a}·${b}) = √${a * b} = ${v}` };
+      }
+      if (type === 'quot') {
+        // √a : √b mit a/b = Quadratzahl
+        const pairs = [[50, 2], [72, 2], [48, 3], [98, 2], [45, 5], [27, 3], [80, 5], [200, 2], [108, 3], [128, 2], [180, 5]];
+        const [a, b] = choice(pairs);
+        const v = Math.sqrt(a / b);
+        return { html: `${rootHTML(a)} : ${rootHTML(b)}`, answer: v, hint: `√(${a}:${b}) = √${a / b} = ${v}` };
+      }
+      // (√a)² = a
+      const a = choice([2, 3, 5, 6, 7, 10, 11, 13]);
+      return { html: `(${rootHTML(a)})<sup>2</sup>`, answer: a, hint: `(√${a})² = ${a}` };
+    }
+  },
+
+  // ---------------- Logarithmen ----------------
+  logarithmen: {
+    name: 'Logarithmen',
+    easy(grade) {
+      const opts = [
+        [2, 8, 3], [2, 16, 4], [2, 32, 5], [2, 4, 2], [2, 2, 1], [2, 64, 6],
+        [3, 9, 2], [3, 27, 3], [3, 81, 4], [3, 3, 1],
+        [5, 25, 2], [5, 125, 3], [10, 100, 2], [10, 1000, 3], [10, 10, 1],
+        [4, 16, 2], [4, 64, 3], [7, 49, 2], [6, 36, 2], [2, 128, 7]
+      ];
+      const [b, arg, val] = choice(opts);
+      return { html: logHTML(b, arg), answer: val, hint: `log_${b}(${arg}) = ${val}, da ${b}^${val} = ${arg}` };
+    },
+    hard(grade) {
+      const type = choice(['sum', 'diff', 'recip', 'recip', 'pow']);
+      if (type === 'sum') {
+        // log_b(x) + log_b(y) = log_b(xy)
+        const opts = [
+          { b: 2, x: 8, y: 4, v: 5 }, { b: 2, x: 16, y: 2, v: 5 }, { b: 2, x: 4, y: 8, v: 5 },
+          { b: 3, x: 9, y: 3, v: 3 }, { b: 3, x: 27, y: 3, v: 4 }, { b: 5, x: 5, y: 25, v: 3 },
+          { b: 10, x: 2, y: 5, v: 1 }, { b: 10, x: 4, y: 25, v: 2 }, { b: 10, x: 20, y: 5, v: 2 },
+          { b: 2, x: 16, y: 4, v: 6 },
+        ];
+        const o = choice(opts);
+        return { html: `${logHTML(o.b, o.x)} + ${logHTML(o.b, o.y)}`, answer: o.v, hint: `= log_${o.b}(${o.x}·${o.y}) = log_${o.b}(${o.x * o.y}) = ${o.v}` };
+      }
+      if (type === 'diff') {
+        const opts = [
+          { b: 2, x: 32, y: 2, v: 4 }, { b: 2, x: 64, y: 4, v: 4 }, { b: 2, x: 16, y: 2, v: 3 },
+          { b: 3, x: 81, y: 9, v: 2 }, { b: 3, x: 27, y: 3, v: 2 }, { b: 10, x: 1000, y: 10, v: 2 },
+          { b: 5, x: 125, y: 5, v: 2 },
+        ];
+        const o = choice(opts);
+        return { html: `${logHTML(o.b, o.x)} − ${logHTML(o.b, o.y)}`, answer: o.v, hint: `= log_${o.b}(${o.x}:${o.y}) = log_${o.b}(${o.x / o.y}) = ${o.v}` };
+      }
+      if (type === 'recip') {
+        // log_b(1/x) = negativ
+        const opts = [
+          { b: 2, x: 8, v: -3 }, { b: 2, x: 4, v: -2 }, { b: 2, x: 16, v: -4 },
+          { b: 3, x: 9, v: -2 }, { b: 3, x: 27, v: -3 }, { b: 10, x: 100, v: -2 },
+          { b: 5, x: 25, v: -2 }, { b: 2, x: 32, v: -5 },
+        ];
+        const o = choice(opts);
+        return { html: logHTML(o.b, fracHTML(1, o.x)), answer: o.v, hint: `log_${o.b}(1/${o.x}) = −log_${o.b}(${o.x}) = ${o.v}` };
+      }
+      // log_b(b^k) mit größerem k, oder log_b(arg^p)
+      const opts = [
+        { b: 2, arg: '8<sup>2</sup>', v: 6, note: '8²=64, log₂64=6' },
+        { b: 3, arg: '9<sup>2</sup>', v: 4, note: '9²=81, log₃81=4' },
+        { b: 2, arg: '4<sup>3</sup>', v: 6, note: '4³=64, log₂64=6' },
+        { b: 10, arg: '10<sup>5</sup>', v: 5, note: 'log₁₀10⁵=5' },
+        { b: 2, arg: '2<sup>9</sup>', v: 9, note: 'log₂2⁹=9' },
+      ];
+      const o = choice(opts);
+      return { html: logHTML(o.b, o.arg), answer: o.v, hint: o.note };
+    }
+  }
+};
+
+// ============================================================
+//  Öffentliche API: erzeugt eine Aufgabe
+// ============================================================
+function makeProblem(areas, difficulties, grade) {
+  const area = choice(areas);
+  const difficulty = choice(difficulties);
+  const g = GEN[area][difficulty](grade);
+  return { ...g, area, areaName: GEN[area].name, difficulty };
+}
+
+// Für Node-Test exportieren
+
+
+/* app */
+/* ============================================================
+   Mattle — Mathe-Battle (Hex-Verbindungsspiel)
+   Erwartet: makeProblem, fmt (aus generators.js)
+   ============================================================ */
+(function () {
+  "use strict";
+
+  /* ---------- Bereiche ---------- */
+  var AREA_FROM = { ganze: 5, brueche: 6, dezimal: 6, potenzen: 8, wurzeln: 9, logarithmen: 10 };
+  var AREA_LABEL = {
+    ganze: "Ganze Zahlen", brueche: "Brüche", dezimal: "Dezimalbrüche",
+    potenzen: "Potenzen", wurzeln: "Wurzeln", logarithmen: "Logarithmen"
+  };
+  var AREA_ORDER = ["ganze", "brueche", "dezimal", "potenzen", "wurzeln", "logarithmen"];
+  var COL = { A: "#22d3ee", B: "#fb7185" };
+
+  /* ---------- DOM ---------- */
+  var $ = function (id) { return document.getElementById(id); };
+  var teamA = $("teamA"), teamB = $("teamB");
+  var nameA = $("nameA"), nameB = $("nameB");
+  var countA = $("countA"), countB = $("countB");
+  var puckA = $("puckA"), puckB = $("puckB");
+  var turnbar = $("turnbar");
+  var board = $("board");
+  var qcard = $("qcard");
+  var badge = $("badge"), badgeText = $("badgeText");
+  var areaLabel = $("areaLabel"), problemEl = $("problem");
+  var timerwrap = $("timerwrap"), timebar = $("timebar"), timenum = $("timenum");
+  var ansrow = $("ansrow"), ansph = $("ansph");
+  var keypad = $("keypad"), statusEl = $("status");
+  var solutionEl = $("solution"), revealInline = $("revealInline");
+  var btnReset = $("btnReset"), btnSolution = $("btnSolution"), btnSettings = $("btnSettings");
+  // Settings
+  var ov = $("settingsOverlay"), selGrade = $("selGrade"), areaChecks = $("areaChecks");
+  var segDiff = $("segDiff"), segMode = $("segMode"), segSize = $("segSize"), segStart = $("segStart");
+  var inpTime = $("inpTime"), inpNameA = $("inpNameA"), inpNameB = $("inpNameB"), chkSound = $("chkSound");
+  var btnSettingsClose = $("btnSettingsClose"), btnSettingsSave = $("btnSettingsSave");
+  // Win
+  var winOverlay = $("winOverlay"), winTitle = $("winTitle"), winFinal = $("winFinal");
+  var btnPlayAgain = $("btnPlayAgain"), btnWinSettings = $("btnWinSettings"), confetti = $("confetti");
+  // Intro
+  var intro = $("intro"), btnStart = $("btnStart");
+
+  /* ---------- Einstellungen ---------- */
+  var LS_KEY = "mattle-v1";
+  function defaultAreasFor(grade) {
+    var a = {}; AREA_ORDER.forEach(function (k) { a[k] = grade >= AREA_FROM[k]; }); return a;
+  }
+  var settings = {
+    grade: 6,
+    areas: defaultAreasFor(6),
+    difficulty: "mixed",
+    mode: "buzz",          // 'buzz' | 'alt' | 'puck'
+    answerTime: 8,
+    size: 7,
+    start: "random",   // 'random' | 'A' | 'B'
+    teamA: "Team A",
+    teamB: "Team B",
+    sound: true
+  };
+
+  function loadSettings() {
+    try {
+      var raw = localStorage.getItem(LS_KEY); if (!raw) return;
+      var s = JSON.parse(raw);
+      if (s && typeof s === "object") {
+        if (typeof s.grade === "number") settings.grade = clampN(s.grade, 5, 11);
+        if (s.areas && typeof s.areas === "object")
+          AREA_ORDER.forEach(function (k) { if (typeof s.areas[k] === "boolean") settings.areas[k] = s.areas[k]; });
+        if (s.difficulty) settings.difficulty = s.difficulty;
+        if (s.mode === "buzz" || s.mode === "alt" || s.mode === "puck") settings.mode = s.mode;
+        if (typeof s.answerTime === "number") settings.answerTime = clampN(s.answerTime, 3, 60);
+        if (typeof s.size === "number") settings.size = [5, 7, 9, 11].indexOf(s.size) >= 0 ? s.size : 7;
+        if (s.start === "A" || s.start === "B" || s.start === "random") settings.start = s.start;
+        if (typeof s.teamA === "string") settings.teamA = s.teamA.slice(0, 18) || "Team A";
+        if (typeof s.teamB === "string") settings.teamB = s.teamB.slice(0, 18) || "Team B";
+        if (typeof s.sound === "boolean") settings.sound = s.sound;
+      }
+    } catch (e) { /* in-memory */ }
+  }
+  function saveSettings() { try { localStorage.setItem(LS_KEY, JSON.stringify(settings)); } catch (e) { } }
+
+  /* ---------- Helfer ---------- */
+  function clampN(v, lo, hi) { v = parseInt(v, 10); if (isNaN(v)) v = lo; return Math.max(lo, Math.min(hi, v)); }
+  function diffsAllowed() {
+    if (settings.difficulty === "easy") return ["easy"];
+    if (settings.difficulty === "hard") return ["hard"];
+    return ["easy", "hard"];
+  }
+  function selectedAreas() {
+    return AREA_ORDER.filter(function (k) { return settings.areas[k] && settings.grade >= AREA_FROM[k]; });
+  }
+  function show(el) { el.classList.remove("hidden"); }
+  function hide(el) { el.classList.add("hidden"); }
+  function escapeHTML(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function teamName(t) { return t === "A" ? settings.teamA : settings.teamB; }
+
+  /* ============================================================
+     Brett-Geometrie (spitze Sechsecke, Axialkoordinaten)
+     ============================================================ */
+  var SQRT3 = Math.sqrt(3), HS = 10; // Hex-Größe (SVG-Einheiten, skaliert via viewBox)
+  var DIRS = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+  function pix(q, r) { return { x: HS * SQRT3 * (q + r / 2), y: HS * 1.5 * r }; }
+  function corners(cx, cy) {
+    var p = [];
+    for (var i = 0; i < 6; i++) { var a = Math.PI / 180 * (60 * i - 90); p.push((cx + HS * Math.cos(a)).toFixed(2) + "," + (cy + HS * Math.sin(a)).toFixed(2)); }
+    return p.join(" ");
+  }
+
+  /* ---------- Brettzustand ---------- */
+  var N = 7;
+  var owner = {};            // "q,r" -> 'A' | 'B'
+  var counts = { A: 0, B: 0 };
+  var winPath = null;        // Set von "q,r"
+  function key(q, r) { return q + "," + r; }
+  function inBoard(q, r) { return q >= 0 && q < N && r >= 0 && r < N; }
+
+  function buildBoardSVG(popKey) {
+    var minX = 1e9, minY = 1e9, maxX = -1e9, maxY = -1e9, q, r, c;
+    for (r = 0; r < N; r++) for (q = 0; q < N; q++) {
+      c = pix(q, r);
+      minX = Math.min(minX, c.x - HS); maxX = Math.max(maxX, c.x + HS);
+      minY = Math.min(minY, c.y - HS); maxY = Math.max(maxY, c.y + HS);
+    }
+    // Randbalken berechnen (außerhalb der Ecken)
+    var c00 = pix(0, 0), cN0 = pix(N - 1, 0), c0N = pix(0, N - 1), cNN = pix(N - 1, N - 1);
+    var cen = { x: (c00.x + cN0.x + c0N.x + cNN.x) / 4, y: (c00.y + cN0.y + c0N.y + cNN.y) / 4 };
+    var off = HS * 1.35;
+    function bar(p1, p2, cls) {
+      var mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
+      var dx = mx - cen.x, dy = my - cen.y, L = Math.hypot(dx, dy) || 1;
+      var ox = dx / L * off, oy = dy / L * off;
+      // Endpunkte etwas verlängern
+      var ex = (p2.x - p1.x), ey = (p2.y - p1.y), eL = Math.hypot(ex, ey) || 1;
+      var lx = ex / eL * HS * 0.7, ly = ey / eL * HS * 0.7;
+      var x1 = p1.x - lx + ox, y1 = p1.y - ly + oy, x2 = p2.x + lx + ox, y2 = p2.y + ly + oy;
+      minX = Math.min(minX, x1, x2); maxX = Math.max(maxX, x1, x2);
+      minY = Math.min(minY, y1, y2); maxY = Math.max(maxY, y1, y2);
+      return '<line class="edge ' + cls + '" x1="' + x1.toFixed(1) + '" y1="' + y1.toFixed(1) +
+        '" x2="' + x2.toFixed(1) + '" y2="' + y2.toFixed(1) + '" stroke-width="' + (HS * 0.62).toFixed(1) + '"/>';
+    }
+    var edges = "";
+    edges += bar(c00, cN0, "B");   // oben  (Team B)
+    edges += bar(c0N, cNN, "B");   // unten (Team B)
+    edges += bar(c00, c0N, "A");   // links (Team A)
+    edges += bar(cN0, cNN, "A");   // rechts(Team A)
+
+    var hexes = "";
+    for (r = 0; r < N; r++) for (q = 0; q < N; q++) {
+      c = pix(q, r);
+      var own = owner[key(q, r)];
+      var cls = "hex " + (own ? own : "empty");
+      if (popKey === key(q, r)) cls += " pop";
+      if (winPath && winPath.has(key(q, r))) cls += " win";
+      hexes += '<polygon class="' + cls + '" data-q="' + q + '" data-r="' + r + '" points="' + corners(c.x, c.y) + '"></polygon>';
+    }
+
+    var pad = HS * 0.6;
+    var vb = (minX - pad).toFixed(1) + " " + (minY - pad).toFixed(1) + " " +
+      (maxX - minX + 2 * pad).toFixed(1) + " " + (maxY - minY + 2 * pad).toFixed(1);
+    return '<svg viewBox="' + vb + '" preserveAspectRatio="xMidYMid meet">' + edges + hexes + '</svg>';
+  }
+
+  function renderBoard(popKey) {
+    board.innerHTML = buildBoardSVG(popKey);
+    board.classList.toggle("choosing", phase === "choose");
+    board.classList.toggle("turnA", chooser === "A");
+    board.classList.toggle("turnB", chooser === "B");
+  }
+
+  /* ---------- Verbindungsprüfung (Hex) ---------- */
+  function checkConnect(team) {
+    // A: q=0 -> q=N-1 ; B: r=0 -> r=N-1
+    var isA = team === "A";
+    var seen = {}, parent = {}, queue = [], q, r, k;
+    for (r = 0; r < N; r++) for (q = 0; q < N; q++) {
+      if (owner[key(q, r)] !== team) continue;
+      if (isA ? q === 0 : r === 0) { k = key(q, r); if (!seen[k]) { seen[k] = 1; parent[k] = null; queue.push([q, r]); } }
+    }
+    while (queue.length) {
+      var cell = queue.shift(); q = cell[0]; r = cell[1];
+      if (isA ? q === N - 1 : r === N - 1) {
+        // Pfad rekonstruieren
+        var path = new Set(), ck = key(q, r);
+        while (ck != null) { path.add(ck); ck = parent[ck]; }
+        return path;
+      }
+      for (var d = 0; d < 6; d++) {
+        var nq = q + DIRS[d][0], nr = r + DIRS[d][1];
+        if (!inBoard(nq, nr)) continue;
+        var nk = key(nq, nr);
+        if (owner[nk] === team && !seen[nk]) { seen[nk] = 1; parent[nk] = key(q, r); queue.push([nq, nr]); }
+      }
+    }
+    return null;
+  }
+
+  /* ============================================================
+     Spielzustand
+     ============================================================ */
+  var phase = "intro";       // intro | choose | ready | answering | resolved | won
+  var chooser = "A";         // wer ein Feld wählt
+  var active = null;         // wer gerade antwortet
+  var attempts = { A: false, B: false };
+  var pending = null;        // {q,r} aktuell umkämpftes Feld
+  var problem = null;
+  var buf = "";
+  var awaitingContinue = false;
+  var rafId = null, deadline = 0, totalMs = 0;
+  var puck = "A";            // Puck-Besitzer (Modus 'puck')
+  function other(t) { return t === "A" ? "B" : "A"; }
+  function startTeam() { return settings.start === "A" ? "A" : settings.start === "B" ? "B" : (Math.random() < 0.5 ? "A" : "B"); }
+
+  /* ---------- Spiel starten / zurücksetzen ---------- */
+  function startGame() {
+    N = settings.size;
+    owner = {}; counts = { A: 0, B: 0 }; winPath = null;
+    problem = null; pending = null; active = null; buf = "";
+    attempts = { A: false, B: false }; awaitingContinue = false;
+    stopTimer();
+    hide(winOverlay); clearConfetti(); hide(qcard);
+    chooser = startTeam();
+    puck = chooser;
+    phase = "choose";
+    renderBoard(null);
+    render();
+    setTurnbar();
+  }
+
+  /* ---------- Feld wählen ---------- */
+  function chooseHex(q, r) {
+    if (phase !== "choose") return;
+    if (owner[key(q, r)]) return;
+    var areas = selectedAreas();
+    if (areas.length === 0) { openSettings(); return; }
+    var p = makeProblem(areas, diffsAllowed(), settings.grade);
+    if (!p) { flashTurnbar("Keine Aufgabe für diese Auswahl möglich.", null); return; }
+    pending = { q: q, r: r };
+    problem = p; buf = ""; active = null;
+    attempts = { A: false, B: false };
+    awaitingContinue = false;
+    phase = "ready";
+
+    // Frage-Karte vorbereiten
+    problemEl.innerHTML = '<span class="fit">' + p.html + '</span>';
+    areaLabel.textContent = AREA_LABEL[p.area] || "";
+    var hard = p.difficulty === "hard";
+    badge.classList.toggle("easy", !hard);
+    badge.classList.toggle("hard", hard);
+    badgeText.textContent = hard ? "Schwer" : "Leicht";
+    qcard.style.removeProperty("--ac");
+    hide(timerwrap); hide(ansrow); hide(keypad); hide(solutionEl); show(revealInline);
+    ansrow.innerHTML = '<span class="ph">Antwort eingeben …</span>';
+    show(qcard);
+    fitProblem();
+    teamA.classList.remove("active", "dim", "turn"); teamB.classList.remove("active", "dim", "turn");
+
+    if (settings.mode === "alt") {
+      // Abwechselnd: das Zug-Team (chooser) beantwortet die eigene Wahl direkt
+      active = chooser; attempts[chooser] = true; phase = "answering";
+      beginAnswerUI(chooser);
+      sound("buzz"); startTimer();
+    } else {
+      // Buzzern / Puck: beide Teams buzzern
+      phase = "ready";
+      setBuzzable(true);
+      setStatus(settings.mode === "puck"
+        ? (teamName(puck) + " hat den Puck — beide buzzern!")
+        : "Beide Teams buzzern — wer weiß es?", "neutral");
+    }
+    renderBoard(null);
+    setTurnbar();
+  }
+
+  /* ---------- Buzzern ---------- */
+  function buzz(team) {
+    if (phase !== "ready") return;
+    if (!problem) return;
+    active = team; attempts[team] = true; phase = "answering"; buf = "";
+    beginAnswerUI(team);
+    sound("buzz");
+    startTimer();
+    setTurnbar();
+  }
+  function beginAnswerUI(team) {
+    setBuzzable(false);
+    var cur = team === "A" ? teamA : teamB, other = team === "A" ? teamB : teamA;
+    cur.classList.add("active"); cur.classList.remove("dim", "turn");
+    other.classList.remove("active", "turn"); other.classList.add("dim");
+    qcard.style.setProperty("--ac", COL[team]);
+    show(timerwrap); show(ansrow); show(keypad); hide(solutionEl); show(revealInline);
+    buildKeypad(); renderAnswer();
+    setStatus(teamName(team) + " ist dran …", "neutral");
+  }
+
+  /* ---------- Timer ---------- */
+  function startTimer() {
+    stopTimer(); totalMs = settings.answerTime * 1000; deadline = now() + totalMs;
+    timebar.style.background = "var(--easy)"; tick();
+  }
+  function tick() {
+    var remain = deadline - now();
+    if (remain <= 0) { timebar.style.width = "0%"; timenum.textContent = "0"; stopTimer(); onTimeout(); return; }
+    var frac = remain / totalMs;
+    timebar.style.width = (frac * 100).toFixed(1) + "%";
+    timenum.textContent = Math.ceil(remain / 1000);
+    timebar.style.background = frac > 0.5 ? "var(--easy)" : (frac > 0.25 ? "var(--hard)" : "var(--b)");
+    rafId = requestAnimationFrame(tick);
+  }
+  function stopTimer() { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
+  function now() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
+  function onTimeout() {
+    if (phase !== "answering") return;
+    resolveWrong(teamName(active) + ": Zeit abgelaufen.");
+  }
+
+  /* ---------- Tastenfeld ---------- */
+  var KEYS = ["7", "8", "9", "back", "4", "5", "6", "clear", "1", "2", "3", "/", "−", "0", ",", "ok"];
+  function buildKeypad() {
+    if (keypad.dataset.built === "1") return;
+    keypad.innerHTML = "";
+    KEYS.forEach(function (k) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "key";
+      if (k === "ok") { b.className += " ok"; b.textContent = "OK"; }
+      else if (k === "back") { b.className += " fn"; b.textContent = "⌫"; }
+      else if (k === "clear") { b.className += " fn"; b.textContent = "C"; }
+      else if (k === "/") { b.className += " fn"; b.textContent = "/"; }
+      else if (k === "−") { b.className += " fn"; b.textContent = "−"; }
+      else { b.textContent = k; }
+      b.addEventListener("click", function () { keyIn(k); });
+      keypad.appendChild(b);
+    });
+    keypad.dataset.built = "1";
+  }
+  function keyIn(k) {
+    if (phase !== "answering") return;
+    if (k === "ok") { submit(); return; }
+    if (k === "back") { buf = buf.slice(0, -1); renderAnswer(); return; }
+    if (k === "clear") { buf = ""; renderAnswer(); return; }
+    if (k === "−") { if (buf === "") buf = "−"; else if (buf === "−") buf = ""; renderAnswer(); return; }
+    if (k === "/") { if (buf === "" || buf === "−") return; if (buf.indexOf("/") !== -1) return; buf += "/"; renderAnswer(); return; }
+    if (k === ",") {
+      var part = buf.split("/").pop();
+      if (part.indexOf(",") !== -1) return;
+      if (part === "" || part === "−") buf += "0";
+      buf += ","; renderAnswer(); return;
+    }
+    buf += k; renderAnswer();
+  }
+  function renderAnswer() {
+    if (buf === "") ansrow.innerHTML = '<span class="ph">Antwort eingeben …</span>';
+    else ansrow.textContent = buf;
+  }
+  function parseAnswer(str) {
+    str = String(str).trim().replace(/−/g, "-").replace(/,/g, ".");
+    if (str === "" || str === "-") return NaN;
+    if (str.indexOf("/") !== -1) {
+      var p = str.split("/"); if (p.length !== 2) return NaN;
+      var na = parseFloat(p[0]), nb = parseFloat(p[1]);
+      if (!isFinite(na) || !isFinite(nb) || nb === 0) return NaN;
+      return na / nb;
+    }
+    var v = parseFloat(str); return isFinite(v) ? v : NaN;
+  }
+  function submit() {
+    if (phase !== "answering" || !problem) return;
+    var val = parseAnswer(buf);
+    if (isNaN(val)) { flashStatus("Bitte eine gültige Zahl eingeben.", "bad"); return; }
+    if (Math.abs(val - problem.answer) < 1e-6) resolveCorrect();
+    else resolveWrong(null);
+  }
+
+  /* ---------- Auswertung ---------- */
+  function resolveCorrect() {
+    stopTimer();
+    var team = active;
+    // PUCK-Modus: nur der Puck-Besitzer erobert Felder; sonst zuerst den Puck gewinnen
+    if (settings.mode === "puck" && team !== puck) {
+      puck = team; chooser = team;
+      sound("correct"); flashTeam(team);
+      phase = "resolved";
+      setStatus(teamName(team) + " erobert den Puck! (noch kein Feld) 🏒", "good");
+      revealSolution(false);
+      renderBoard(null);
+      render();
+      armContinue();
+      return;
+    }
+    claimHex(team, pending.q, pending.r);
+    sound("correct");
+    flashTeam(team);
+    var win = checkConnect(team);
+    if (win) {
+      winPath = win;
+      phase = "won";
+      setStatus("Richtig! " + teamName(team) + " verbindet die Seiten! 🎉", "good");
+      revealSolution(false);
+      renderBoard(key(pending.q, pending.r));
+      render();
+      setTimeout(function () { showWin(team); }, 750);
+      return;
+    }
+    phase = "resolved";
+    // Nächster Wähler je nach Modus
+    if (settings.mode === "alt") chooser = other(chooser);   // reihum
+    else if (settings.mode === "puck") chooser = puck;        // Puck-Besitzer wählt weiter
+    else chooser = team;                                      // Buzzern: Gewinner wählt
+    setStatus("Richtig! " + teamName(team) + " erobert das Feld.", "good");
+    revealSolution(false);
+    renderBoard(key(pending.q, pending.r));
+    render();
+    armContinue();
+  }
+
+  function resolveWrong(reasonMsg) {
+    stopTimer(); sound("wrong");
+    var failed = active, other = failed === "A" ? "B" : "A";
+    var base = reasonMsg || (teamName(failed) + ": leider falsch.");
+    flashTeam(failed);
+    if (!attempts[other]) {
+      setStatus(base + " — " + teamName(other) + " darf jetzt antworten!", "bad");
+      active = other; attempts[other] = true; phase = "answering"; buf = "";
+      setTimeout(function () { if (phase !== "answering") return; beginAnswerUI(other); startTimer(); setTurnbar(); }, 900);
+    } else {
+      // beide gescheitert -> Feld bleibt frei
+      phase = "resolved";
+      chooser = (settings.mode === "puck") ? puck : other(chooser);
+      setStatus("Schade — niemand richtig. Das Feld bleibt frei.", "bad");
+      revealSolution(true);
+      render();
+      armContinue();
+    }
+  }
+
+  /* ---------- Feld erobern ---------- */
+  function claimHex(team, q, r) {
+    var k = key(q, r);
+    if (owner[k]) counts[owner[k]]--;
+    owner[k] = team; counts[team]++;
+  }
+
+  /* ---------- Lösung ---------- */
+  function niceAnswer(p) {
+    var re = /-?\d+(?:[.,]\d+)?(?:\/\d+)?/g, m, best = null;
+    while ((m = re.exec(p.hint)) !== null) {
+      var v = parseAnswer(m[0]);
+      if (!isNaN(v) && Math.abs(v - p.answer) < 1e-6) best = m[0];
+    }
+    if (best !== null) return best;
+    if (typeof fmt === "function") return fmt(p.answer);
+    return String(p.answer).replace(".", ",");
+  }
+  function revealSolution(emphasize) {
+    if (!problem) return;
+    solutionEl.innerHTML =
+      '<div style="font-size:1.15em">Lösung: <b>' + problem.html + " = " + niceAnswer(problem) + "</b></div>" +
+      '<div style="margin-top:6px">Rechenweg: ' + escapeHTML(problem.hint) + "</div>";
+    show(solutionEl); hide(revealInline); hide(timerwrap); hide(keypad);
+    if (emphasize) hide(ansrow);
+    setBuzzable(false);
+    teamA.classList.remove("active", "dim"); teamB.classList.remove("active", "dim");
+  }
+
+  // Spielleitung erzwingt Lösung (kein Gewinn)
+  function giveUp() {
+    if (phase !== "ready" && phase !== "answering") return;
+    stopTimer();
+    phase = "resolved";
+    chooser = (settings.mode === "puck") ? puck : other(chooser);
+    setStatus("Aufgelöst durch Spielleitung. Feld bleibt frei.", "neutral");
+    revealSolution(true);
+    render();
+    armContinue();
+  }
+
+  /* ---------- Weiter zum Brett ---------- */
+  function armContinue() {
+    awaitingContinue = true;
+    var s = solutionEl.innerHTML;
+    solutionEl.innerHTML = s + '<div style="margin-top:10px; color:var(--ink); font-weight:800">Tippe hier, um weiterzuspielen →</div>';
+    setTurnbar();
+  }
+  function continueToBoard() {
+    awaitingContinue = false;
+    pending = null; problem = null; active = null; buf = "";
+    phase = "choose";
+    hide(qcard);
+    teamA.classList.remove("active", "dim"); teamB.classList.remove("active", "dim");
+    renderBoard(null);
+    render();
+    setTurnbar();
+  }
+
+  /* ============================================================
+     Rendern (Panels & Turnbar)
+     ============================================================ */
+  function render() {
+    nameA.textContent = settings.teamA; nameB.textContent = settings.teamB;
+    countA.innerHTML = counts.A + "<small>Felder</small>";
+    countB.innerHTML = counts.B + "<small>Felder</small>";
+    teamA.classList.toggle("turn", phase === "choose" && chooser === "A");
+    teamB.classList.toggle("turn", phase === "choose" && chooser === "B");
+    var puckMode = settings.mode === "puck";
+    puckA.classList.toggle("hidden", !(puckMode && puck === "A"));
+    puckB.classList.toggle("hidden", !(puckMode && puck === "B"));
+  }
+  function fitProblem() {
+    var fit = problemEl.querySelector(".fit");
+    if (!fit) return;
+    fit.style.transform = "none";
+    var run = function () {
+      fit.style.transform = "none";
+      var avail = problemEl.clientWidth;
+      var w = fit.getBoundingClientRect().width;
+      if (avail > 0 && w > avail) fit.style.transform = "scale(" + (avail / w * 0.98).toFixed(4) + ")";
+    };
+    if (window.requestAnimationFrame) requestAnimationFrame(run); else run();
+  }
+  window.addEventListener("resize", function () { fitProblem(); });
+  function setTurnbar() {
+    turnbar.classList.remove("turnA", "turnB");
+    var txt = "", dot = "";
+    if (phase === "choose") {
+      turnbar.classList.add(chooser === "A" ? "turnA" : "turnB");
+      dot = '<span class="dot" style="background:' + COL[chooser] + '"></span>';
+      var suffix = settings.mode === "alt" ? " ist am Zug — Sechseck wählen"
+        : settings.mode === "puck" ? " hat den Puck — Sechseck wählen"
+          : " wählt ein Sechseck";
+      txt = '<span class="txt">' + escapeHTML(teamName(chooser)) + suffix + "</span>";
+    } else if (phase === "ready") {
+      txt = '<span class="txt">' + (settings.mode === "puck"
+        ? ("Frage offen — beide buzzern (Puck: " + escapeHTML(teamName(puck)) + ")")
+        : "Frage offen — beide Teams buzzern!") + "</span>";
+    } else if (phase === "answering") {
+      turnbar.classList.add(active === "A" ? "turnA" : "turnB");
+      dot = '<span class="dot" style="background:' + COL[active] + '"></span>';
+      txt = '<span class="txt">' + escapeHTML(teamName(active)) + " antwortet …</span>";
+    } else if (phase === "resolved") {
+      txt = '<span class="txt">' + (awaitingContinue ? "Tippe auf die Karte, um weiterzuspielen" : "…") + "</span>";
+    } else if (phase === "won") {
+      txt = '<span class="txt">Spiel entschieden!</span>';
+    } else {
+      txt = '<span class="txt">Bereit.</span>';
+    }
+    turnbar.innerHTML = dot + txt;
+  }
+
+  /* ---------- Status & Effekte ---------- */
+  function setStatus(msg, kind) { statusEl.textContent = msg; statusEl.className = "status " + (kind || "neutral"); }
+  var flashTimer = null;
+  function flashStatus(msg, kind) {
+    var prev = statusEl.textContent, prevC = statusEl.className;
+    setStatus(msg, kind);
+    if (flashTimer) clearTimeout(flashTimer);
+    flashTimer = setTimeout(function () { if (statusEl.textContent === msg) { statusEl.textContent = prev; statusEl.className = prevC; } }, 1700);
+  }
+  var tbTimer = null;
+  function flashTurnbar(msg) {
+    var prev = turnbar.innerHTML;
+    turnbar.innerHTML = '<span class="txt">' + escapeHTML(msg) + "</span>";
+    if (tbTimer) clearTimeout(tbTimer);
+    tbTimer = setTimeout(function () { turnbar.innerHTML = prev; }, 1600);
+  }
+  function flashTeam(team) {
+    var el = team === "A" ? teamA : teamB;
+    el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+  }
+  function setBuzzable(on) { teamA.classList.toggle("buzzable", on); teamB.classList.toggle("buzzable", on); }
+
+  /* ---------- Sieg ---------- */
+  function showWin(team) {
+    winTitle.textContent = teamName(team) + " gewinnt!";
+    winFinal.innerHTML =
+      '<span class="pa">' + escapeHTML(settings.teamA) + " " + counts.A + " Felder</span>" +
+      " &nbsp;·&nbsp; " +
+      '<span class="pb">' + escapeHTML(settings.teamB) + " " + counts.B + " Felder</span>";
+    show(winOverlay); sound("win"); runConfetti();
+  }
+
+  /* ---------- Konfetti ---------- */
+  function runConfetti() {
+    clearConfetti(); show(confetti);
+    var cols = ["#22d3ee", "#fb7185", "#34d399", "#fbbf24", "#a78bfa", "#fff"];
+    for (var i = 0; i < 90; i++) {
+      var s = document.createElement("i");
+      s.style.left = (Math.random() * 100) + "%";
+      s.style.background = cols[(Math.random() * cols.length) | 0];
+      s.style.animationDuration = (2.4 + Math.random() * 2.2) + "s";
+      s.style.animationDelay = (Math.random() * 0.6) + "s";
+      s.style.transform = "rotate(" + (Math.random() * 360) + "deg)";
+      confetti.appendChild(s);
+    }
+    if (confetti._t) clearTimeout(confetti._t);
+    confetti._t = setTimeout(clearConfetti, 5200);
+  }
+  function clearConfetti() { if (confetti._t) { clearTimeout(confetti._t); confetti._t = null; } confetti.innerHTML = ""; hide(confetti); }
+
+  /* ---------- Audio ---------- */
+  var actx = null;
+  function ensureAudio() {
+    if (!settings.sound) return null;
+    try {
+      if (!actx) { var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return null; actx = new AC(); }
+      if (actx.state === "suspended") actx.resume();
+    } catch (e) { actx = null; }
+    return actx;
+  }
+  function tone(freq, start, dur, type, gain) {
+    if (!actx) return;
+    try {
+      var o = actx.createOscillator(), g = actx.createGain();
+      o.type = type || "sine"; o.frequency.value = freq;
+      var t0 = actx.currentTime + start;
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(gain || 0.18, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(actx.destination);
+      o.start(t0); o.stop(t0 + dur + 0.02);
+    } catch (e) { }
+  }
+  function sound(kind) {
+    var ctx = ensureAudio(); if (!ctx) return;
+    if (kind === "buzz") { tone(440, 0, 0.12, "square", 0.16); tone(330, 0.05, 0.12, "square", 0.12); }
+    else if (kind === "correct") { tone(660, 0, 0.12, "sine", 0.18); tone(880, 0.10, 0.16, "sine", 0.18); tone(1175, 0.20, 0.20, "sine", 0.16); }
+    else if (kind === "wrong") { tone(220, 0, 0.22, "sawtooth", 0.16); tone(165, 0.12, 0.26, "sawtooth", 0.14); }
+    else if (kind === "win") { var seq = [523, 659, 784, 1047]; for (var i = 0; i < seq.length; i++) tone(seq[i], i * 0.13, 0.20, "triangle", 0.18); tone(1319, 0.55, 0.5, "triangle", 0.16); }
+  }
+
+  /* ============================================================
+     Einstellungen
+     ============================================================ */
+  function buildAreaChecks() {
+    areaChecks.innerHTML = "";
+    AREA_ORDER.forEach(function (k) {
+      var avail = settings.grade >= AREA_FROM[k];
+      var lab = document.createElement("label");
+      lab.className = "chk" + (avail ? "" : " disabled");
+      var cb = document.createElement("input");
+      cb.type = "checkbox"; cb.dataset.area = k; cb.disabled = !avail;
+      cb.checked = avail && !!settings.areas[k];
+      cb.addEventListener("change", function () { settings.areas[k] = cb.checked; });
+      var span = document.createElement("span");
+      span.textContent = AREA_LABEL[k] + (avail ? "" : " · ab Jgst. " + AREA_FROM[k]);
+      lab.appendChild(cb); lab.appendChild(span); areaChecks.appendChild(lab);
+    });
+  }
+  function syncSeg(seg, val) {
+    Array.prototype.forEach.call(seg.querySelectorAll("button"), function (b) { b.classList.toggle("on", b.dataset.v === String(val)); });
+  }
+  function syncSettingsForm() {
+    selGrade.value = String(settings.grade);
+    buildAreaChecks();
+    syncSeg(segDiff, settings.difficulty);
+    syncSeg(segMode, settings.mode);
+    syncSeg(segSize, settings.size);
+    syncSeg(segStart, settings.start);
+    inpTime.value = settings.answerTime;
+    inpNameA.value = settings.teamA; inpNameB.value = settings.teamB;
+    chkSound.checked = settings.sound;
+  }
+  function openSettings() { syncSettingsForm(); show(ov); hide(winOverlay); }
+  function closeSettings() { hide(ov); }
+  function saveFromForm() {
+    settings.answerTime = clampN(inpTime.value, 3, 60);
+    settings.teamA = (inpNameA.value || "Team A").slice(0, 18);
+    settings.teamB = (inpNameB.value || "Team B").slice(0, 18);
+    settings.sound = !!chkSound.checked;
+    AREA_ORDER.forEach(function (k) { if (settings.grade < AREA_FROM[k]) settings.areas[k] = false; });
+    saveSettings();
+    closeSettings();
+    startGame();
+  }
+
+  /* ============================================================
+     Events
+     ============================================================ */
+  // Brett: Feld wählen (delegiert)
+  board.addEventListener("click", function (e) {
+    var t = e.target;
+    if (!t || t.tagName.toLowerCase() !== "polygon") return;
+    var q = parseInt(t.getAttribute("data-q"), 10), r = parseInt(t.getAttribute("data-r"), 10);
+    if (isNaN(q) || isNaN(r)) return;
+    chooseHex(q, r);
+  });
+
+  // Buzzer
+  teamA.addEventListener("click", function () { buzz("A"); });
+  teamB.addEventListener("click", function () { buzz("B"); });
+  [["A", teamA], ["B", teamB]].forEach(function (pair) {
+    pair[1].addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") { e.preventDefault(); buzz(pair[0]); }
+    });
+  });
+
+  // Weiter (Tippen auf Frage-Karte nach Auflösung)
+  qcard.addEventListener("click", function (e) {
+    if (!awaitingContinue) return;
+    if (e.target.closest("#revealInline")) return;
+    continueToBoard();
+  });
+
+  // Steuerung
+  btnReset.addEventListener("click", function () {
+    var started = counts.A > 0 || counts.B > 0 || phase !== "choose";
+    if (!started) { startGame(); return; }
+    var ok = true; try { ok = window.confirm("Spiel wirklich neu starten? Das Spielfeld wird geleert."); } catch (e) { }
+    if (ok) startGame();
+  });
+  btnSolution.addEventListener("click", giveUp);
+  revealInline.addEventListener("click", giveUp);
+  btnSettings.addEventListener("click", openSettings);
+
+  // Einstellungen
+  selGrade.addEventListener("change", function () {
+    settings.grade = clampN(selGrade.value, 5, 11);
+    AREA_ORDER.forEach(function (k) {
+      if (settings.grade < AREA_FROM[k]) settings.areas[k] = false;
+      else if (settings.grade === AREA_FROM[k]) settings.areas[k] = true;
+    });
+    buildAreaChecks();
+  });
+  Array.prototype.forEach.call(segDiff.querySelectorAll("button"), function (b) {
+    b.addEventListener("click", function () { settings.difficulty = b.dataset.v; syncSeg(segDiff, settings.difficulty); });
+  });
+  Array.prototype.forEach.call(segMode.querySelectorAll("button"), function (b) {
+    b.addEventListener("click", function () { settings.mode = b.dataset.v; syncSeg(segMode, settings.mode); });
+  });
+  Array.prototype.forEach.call(segSize.querySelectorAll("button"), function (b) {
+    b.addEventListener("click", function () { settings.size = parseInt(b.dataset.v, 10); syncSeg(segSize, settings.size); });
+  });
+  Array.prototype.forEach.call(segStart.querySelectorAll("button"), function (b) {
+    b.addEventListener("click", function () { settings.start = b.dataset.v; syncSeg(segStart, settings.start); });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-step]"), function (b) {
+    b.addEventListener("click", function () {
+      var d = parseInt(b.dataset.d, 10);
+      if (b.dataset.step === "time") inpTime.value = clampN(parseInt(inpTime.value, 10) + d, 3, 60);
+    });
+  });
+  btnSettingsClose.addEventListener("click", closeSettings);
+  btnSettingsSave.addEventListener("click", saveFromForm);
+  ov.addEventListener("click", function (e) { if (e.target === ov) closeSettings(); });
+
+  // Win
+  btnPlayAgain.addEventListener("click", startGame);
+  btnWinSettings.addEventListener("click", openSettings);
+
+  // Physische Tastatur
+  document.addEventListener("keydown", function (e) {
+    if (!ov.classList.contains("hidden")) return;
+    if (!intro.classList.contains("hidden")) { if (e.key === "Enter") { e.preventDefault(); dismissIntro(); } return; }
+    if (!winOverlay.classList.contains("hidden")) { if (e.key === "Enter") { e.preventDefault(); startGame(); } return; }
+    if (phase === "resolved" && awaitingContinue) { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); continueToBoard(); } return; }
+    if (phase === "ready") {
+      var t = e.key.toLowerCase();
+      if (t === "a") { e.preventDefault(); buzz("A"); }
+      else if (t === "b") { e.preventDefault(); buzz("B"); }
+      return;
+    }
+    if (phase === "answering") {
+      if (e.key >= "0" && e.key <= "9") { e.preventDefault(); keyIn(e.key); }
+      else if (e.key === "," || e.key === ".") { e.preventDefault(); keyIn(","); }
+      else if (e.key === "/") { e.preventDefault(); keyIn("/"); }
+      else if (e.key === "-" || e.key === "−") { e.preventDefault(); keyIn("−"); }
+      else if (e.key === "Backspace") { e.preventDefault(); keyIn("back"); }
+      else if (e.key === "Delete") { e.preventDefault(); keyIn("clear"); }
+      else if (e.key === "Enter") { e.preventDefault(); keyIn("ok"); }
+    }
+  });
+
+  // Audio bei erster Geste wecken
+  document.addEventListener("pointerdown", function once() { ensureAudio(); document.removeEventListener("pointerdown", once); }, { once: true });
+
+  /* ---------- Intro ---------- */
+  function dismissIntro() {
+    if (intro.classList.contains("hidden")) return;
+    hide(intro);
+    if (phase === "intro") startGame();
+  }
+  btnStart.addEventListener("click", dismissIntro);
+
+  /* ---------- Start ---------- */
+  loadSettings();
+  syncSettingsForm();
+  N = settings.size;
+  renderBoard(null);   // Brett schon hinter dem Intro zeichnen
+  render();
+  // Intro bleibt sichtbar bis Klick/Enter; Spiel startet via dismissIntro()
+})();
+</script>
+</body>
+</html>

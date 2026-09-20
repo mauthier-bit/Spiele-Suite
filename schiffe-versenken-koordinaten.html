@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Schiffe versenken">
+<title>Schiffe versenken im Koordinatensystem</title>
+<style>
+:root{--navy:#0a2342;--navy2:#123a63;--paper:#f6fafd;--ink:#15314d;--muted:#5b7089;--hit:#e11d48;--miss:#2f7fd8;--sel:#f59e0b;--ok:#15935a;--warn:#c27406;--bad:#d4332f;--p0:#1596b8;--p1:#e8603c;--pc:#1596b8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",system-ui,sans-serif;-webkit-user-select:none;user-select:none;touch-action:manipulation;overscroll-behavior:none;-webkit-text-size-adjust:100%}
+body{background:#081c36;background:radial-gradient(1100px 700px at 15% -10%,#1b4d7e 0%,transparent 60%),linear-gradient(#0a2342,#061631)}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;touch-action:manipulation;padding:0}
+input{font:inherit;-webkit-user-select:text;user-select:text}
+.screen{position:fixed;inset:0;display:none}
+.screen.on{display:flex}
+.scroll.on{display:block;overflow-y:auto;-webkit-overflow-scrolling:touch}
+
+.btn{background:#fff;color:var(--ink);border-radius:14px;padding:10px 14px;font-weight:650;font-size:16.5px;box-shadow:inset 0 0 0 1.5px #cfdde9,0 2px 0 #cfdde9;min-height:48px;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-align:center;line-height:1.15}
+.btn:active{transform:translateY(1px);filter:brightness(.95)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.primary{background:var(--pc);color:#fff;box-shadow:0 3px 0 rgba(0,0,0,.2)}
+.go{background:linear-gradient(#fcc44a,#f59e0b);color:#3a2300;box-shadow:0 4px 0 #b86f00}
+.big{font-size:21px;min-height:60px;border-radius:16px;padding:12px 20px;width:100%;font-weight:750}
+.ghostbtn{color:#fff;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.3)}
+
+/* ---------- Einstellungen ---------- */
+#scrSettings .wrap{max-width:1120px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) 18px 120px}
+.brand{display:flex;align-items:center;gap:16px;color:#fff;margin-bottom:18px}
+.brand svg{width:64px;height:64px;flex:none}
+.brand h1{margin:0;font-size:32px;letter-spacing:-.02em;line-height:1.1}
+.brand p{margin:3px 0 0;color:#a9c3dc;font-size:17px}
+.brand .sp{flex:1}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.col{display:flex;flex-direction:column;gap:18px;min-width:0}
+@media (max-width:880px){.cols{grid-template-columns:1fr}}
+.card{background:var(--paper);border-radius:22px;padding:16px 18px 18px;box-shadow:0 10px 30px rgba(0,0,0,.28)}
+.card h2{margin:0 0 12px;font-size:20px;display:flex;align-items:center;gap:10px}
+.card h2 .num{width:28px;height:28px;border-radius:50%;background:var(--navy2);color:#fff;font-size:15px;display:grid;place-items:center;flex:none}
+.seg{display:flex;background:#e2ecf4;border-radius:14px;padding:4px;gap:4px}
+.seg button{flex:1;padding:8px 6px;border-radius:11px;font-weight:650;font-size:15px;color:var(--muted);min-height:48px;line-height:1.15}
+.seg button.on{background:#fff;color:var(--ink);box-shadow:0 1px 4px rgba(10,35,66,.2)}
+.row{display:flex;align-items:center;gap:12px;padding:8px 0}
+.row+.row{border-top:1px solid #e2ebf2}
+.rowlbl{font-size:16.5px;font-weight:650;line-height:1.2}
+.rowlbl small{display:block;font-weight:400;color:var(--muted);font-size:14px}
+.stepper{display:flex;align-items:center;gap:6px;margin-left:auto;flex:none}
+.stepper button{width:46px;height:46px;border-radius:12px;background:#fff;box-shadow:inset 0 0 0 1.5px #cfdde9,0 2px 0 #cfdde9;font-size:26px;font-weight:600;line-height:1}
+.stepper button:active{transform:translateY(1px)}
+.stepper output{min-width:34px;text-align:center;font-size:22px;font-weight:750;font-variant-numeric:tabular-nums}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.names label{display:flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:4px 12px;box-shadow:inset 0 0 0 1.5px #cfdde9}
+.names input{border:0;outline:0;width:100%;min-width:0;font-size:18px;padding:10px 0;background:transparent;color:var(--ink);font-weight:600}
+.dot{width:14px;height:14px;border-radius:50%;flex:none;display:inline-block}
+.tog{display:flex;align-items:center;gap:14px;padding:9px 0;cursor:pointer}
+.tog+.tog{border-top:1px solid #e2ebf2}
+.tog input{display:none}
+.sw{width:52px;height:32px;border-radius:16px;background:#c5d3df;position:relative;flex:none;transition:background .2s}
+.sw::after{content:"";position:absolute;left:3px;top:3px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .2s}
+.tog input:checked+.sw{background:var(--ok)}
+.tog input:checked+.sw::after{left:23px}
+.tl{font-size:16.5px;font-weight:650;line-height:1.2}
+.tl small{display:block;font-weight:400;color:var(--muted);font-size:14px;margin-top:2px}
+.tog.dis{opacity:.4;pointer-events:none}
+.preview{display:flex;gap:14px;align-items:center;margin-top:10px}
+.preview svg{width:190px;height:190px;flex:none;background:#fff;border-radius:14px}
+.sizeinfo{font-size:15px;color:var(--muted);line-height:1.5}
+.sizeinfo b{color:var(--ink);font-size:18px}
+.shipico{display:flex;align-items:center;width:92px;flex:none}
+.balance{margin-top:10px;border-radius:16px;padding:12px 14px;background:#fff;box-shadow:inset 0 0 0 1.5px #d7e4ee}
+.fleetsum{font-size:15px;color:var(--muted)}
+.fleetsum b{color:var(--ink)}
+.meter{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,#f6c56f 0 25%,#86d5a8 25% 75%,#f6c56f 75% 100%);margin:12px 4px 4px}
+.meter i{position:absolute;top:-6px;width:8px;height:26px;border-radius:4px;background:var(--navy);transform:translateX(-50%);transition:left .35s;box-shadow:0 0 0 2.5px #fff}
+.meterlbl{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted);padding:0 2px}
+.verdict{font-weight:750;font-size:16px;margin-top:10px;line-height:1.3}
+.verdict.ok{color:var(--ok)}.verdict.warn{color:var(--warn)}.verdict.bad{color:var(--bad)}
+.dur{font-size:15px;color:var(--muted);margin-top:4px;line-height:1.35}
+.modehelp{font-size:14.5px;color:var(--muted);margin:8px 2px 4px;line-height:1.35}
+.startbar{position:fixed;left:0;right:0;bottom:0;padding:26px 20px calc(14px + env(safe-area-inset-bottom));background:linear-gradient(rgba(6,22,49,0),rgba(6,22,49,.96) 40%);display:flex;justify-content:center;pointer-events:none}
+.startbar .btn{max-width:520px;pointer-events:auto}
+
+/* ---------- Spielbildschirme ---------- */
+.game{flex-direction:column}
+.topbar{flex:none;min-height:60px;display:flex;align-items:center;gap:12px;padding:env(safe-area-inset-top) 12px 0 18px;color:#fff;background:var(--pc)}
+.who{font-size:21px;display:flex;align-items:center;gap:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who b{font-weight:800}
+.tstats{margin-left:auto;font-size:15px;opacity:.92;font-variant-numeric:tabular-nums;white-space:nowrap}
+.xbtn{background:rgba(255,255,255,.2);color:#fff;border-radius:12px;padding:8px 14px;font-weight:650;min-height:44px;margin-left:auto;white-space:nowrap}
+.tstats+.xbtn{margin-left:0}
+.layout{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:12px;padding:12px 12px calc(12px + env(safe-area-inset-bottom))}
+.boardbox{min-width:0;min-height:0;background:var(--paper);border-radius:20px;display:flex;flex-direction:column;padding:8px 8px 4px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.boardcap{display:flex;align-items:center;gap:10px;padding:4px 8px 4px;font-size:17px;color:var(--muted);flex-wrap:wrap;min-height:34px}
+.boardcap b{color:var(--ink)}
+.fleeticons{margin-left:auto;display:flex;gap:4px 8px;flex-wrap:wrap;align-items:center;justify-content:flex-end}
+.fleeticons svg{height:18px;width:auto}
+.fleeticons svg.sunk{opacity:.28}
+.board{flex:1;min-height:0;width:100%;display:block}
+.panel{min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;-webkit-overflow-scrolling:touch}
+.pcard{background:var(--paper);border-radius:20px;padding:14px;box-shadow:0 10px 30px rgba(0,0,0,.3)}
+@media (orientation:portrait){
+  .layout{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+  .panel{flex-direction:row;align-items:stretch;overflow:visible}
+  .panel>.pcard{flex:1;min-width:0;max-height:47dvh;overflow-y:auto}
+}
+
+/* Spielbrett (SVG) */
+.sea{fill:#eaf4fb}
+.gl{stroke:#c3d7e8;stroke-width:1.5}
+.ax{stroke:#1f3e5e;stroke-width:3;fill:none;stroke-linecap:round}
+.axh{fill:#1f3e5e}
+.gp{fill:#8ba6be}
+.lbl{fill:#1f3e5e;font-weight:650;paint-order:stroke;stroke:#eaf4fb;stroke-width:6px;stroke-linejoin:round;font-variant-numeric:tabular-nums}
+.axn{font-style:italic;font-weight:700;fill:#1f3e5e;font-family:Georgia,"Times New Roman",serif}
+.free{fill:#dfe8ef;stroke:#a3b6c6;stroke-width:2.5}
+.miss{fill:#d3e6f9;stroke:var(--miss);stroke-width:3.5}
+.hitc{fill:var(--hit);stroke:#fff;stroke-width:2}
+.hitx{stroke:#fff;stroke-width:3.5;stroke-linecap:round}
+.selring{fill:rgba(245,158,11,.18);stroke:var(--sel);stroke-width:5}
+.pulse{fill:none;stroke:var(--sel);stroke-width:4.5;animation:pulse 1.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(1.3)}}
+.guide{fill:none;stroke:var(--sel);stroke-width:6;stroke-linecap:round;stroke-linejoin:round}
+.ghost{fill:none;stroke:#6f849a;stroke-width:3.5;stroke-dasharray:7 5}
+.shipsel{fill:none;stroke:var(--sel);stroke-width:5}
+.sunkship{fill:rgba(127,29,29,.22);stroke:#9f1239;stroke-width:3}
+
+/* Platzieren */
+.hint{font-size:16.5px;line-height:1.4;margin-bottom:10px}
+.shiplist{display:flex;flex-direction:column;gap:6px}
+.si{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:13px;background:#fff;box-shadow:inset 0 0 0 1.5px #d7e4ee;text-align:left;width:100%;min-height:52px}
+.si.sel{box-shadow:inset 0 0 0 3px var(--sel);background:#fff8ea}
+.si .nm{font-weight:700;font-size:16px;line-height:1.2}
+.si .co{font-size:14.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.si.done .co{color:var(--ok);font-weight:600}
+.btnrow{display:flex;gap:8px;margin-top:8px}
+.btnrow .btn{flex:1}
+.msg{font-size:15px;color:var(--bad);line-height:1.35;margin-top:8px;font-weight:600}
+.msg:empty{display:none}
+
+/* Zielen */
+.modetag{display:inline-block;font-size:12.5px;font-weight:750;text-transform:uppercase;letter-spacing:.05em;color:#fff;background:var(--navy2);border-radius:8px;padding:3px 8px;margin-bottom:6px}
+.prompt{font-size:17px;line-height:1.35}
+.cin{display:flex;align-items:center;justify-content:center;gap:6px;font-size:46px;font-weight:300;color:var(--ink);margin:10px 0}
+.cf{width:96px;height:74px;border-radius:14px;background:#fff;box-shadow:inset 0 0 0 2px #cfdde9;font-size:38px;font-weight:750;position:relative;font-variant-numeric:tabular-nums;color:var(--ink)}
+.cf small{position:absolute;left:9px;top:4px;font-size:16px;font-weight:700;color:var(--muted);font-style:italic;font-family:Georgia,serif}
+.cf.act{box-shadow:inset 0 0 0 3.5px var(--pc)}
+.keypad{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.keypad button{height:54px;border-radius:13px;background:#fff;box-shadow:inset 0 0 0 1.5px #cfdde9,0 2px 0 #cfdde9;font-size:26px;font-weight:650}
+.keypad button:active{background:#e3edf5;transform:translateY(1px)}
+.keypad button.inv{visibility:hidden}
+.dim{opacity:.35;pointer-events:none}
+.fire{margin-top:10px}
+.res{font-size:34px;font-weight:850;text-align:center;margin:4px 0 0;line-height:1.1}
+.res.miss{color:var(--miss)}.res.hit,.res.sunk{color:var(--hit)}.res.lost{color:var(--warn)}
+.ressub{text-align:center;font-size:19px;color:var(--muted);margin:6px 0 12px}
+.note{background:#fff3da;border-radius:12px;padding:10px 12px;font-size:15.5px;color:#6f4300;margin-bottom:12px;line-height:1.4}
+.owncap{font-weight:750;font-size:16px}
+.report{font-size:14.5px;color:var(--muted);margin:3px 0 4px;line-height:1.4}
+.report b{color:var(--ink)}
+.own svg{width:100%;height:230px;display:block}
+@media (orientation:portrait){.own svg{height:min(230px,30dvh)}}
+
+/* Übergabe */
+.cover{align-items:center;justify-content:center;background:var(--navy)}
+.cover::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 35%,var(--pc),transparent 70%);opacity:.55}
+.cover-card{position:relative;background:var(--paper);border-radius:28px;padding:30px 30px 26px;max-width:540px;width:calc(100% - 40px);text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+.cover-card svg{width:92px;height:92px}
+.cover-card h2{font-size:32px;margin:8px 0 8px;line-height:1.15}
+.cover-card p{font-size:19px;color:var(--muted);margin:0 0 22px;line-height:1.45}
+.cover-card p b{color:var(--ink)}
+
+/* Sieg */
+#scrWin .wrap{max-width:1040px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) 18px 40px;color:#fff;text-align:center}
+.wtitle{font-size:40px;margin:4px 0 16px;line-height:1.1}
+.wstats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+@media (max-width:700px){.wstats{grid-template-columns:1fr}}
+.wcard{background:var(--paper);color:var(--ink);border-radius:20px;padding:14px 16px;text-align:left}
+.wcard h3{margin:0 0 6px;display:flex;align-items:center;gap:8px;font-size:21px}
+.wcard table{width:100%;font-size:16px;border-collapse:collapse}
+.wcard td{padding:3px 0}.wcard td:last-child{text-align:right;font-weight:750;font-variant-numeric:tabular-nums}
+.wcard svg{width:100%;height:auto;aspect-ratio:1;display:block;margin-top:8px}
+.wcard .cap{font-size:14px;color:var(--muted);margin-top:8px}
+#scrWin .btnrow{max-width:620px;margin:0 auto}
+
+/* Dialoge */
+.modal{position:fixed;inset:0;background:rgba(5,18,36,.62);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+.modal[hidden]{display:none}
+[hidden]{display:none!important}
+.cpucall{text-align:center;font-size:17px;color:var(--muted);margin:6px 0 10px}
+.cpucall span{display:block;font-size:44px;font-weight:800;color:var(--ink);margin-top:2px;font-variant-numeric:tabular-nums}
+.cpuopts{margin-top:10px}
+.cpuopts .seg{margin-bottom:4px}
+.sublbl{font-size:14px;font-weight:650;color:var(--muted);margin:10px 2px 6px}
+.mbox{background:var(--paper);border-radius:22px;padding:20px 22px;max-width:640px;width:100%;max-height:88dvh;overflow:auto}
+.mbox h2{margin:0 0 10px}
+.mbox p,.mbox li{font-size:16.5px;line-height:1.45}
+.mbox ul{padding-left:22px;margin:6px 0}
+</style>
+</head>
+<body>
+
+<!-- ================= EINSTELLUNGEN ================= -->
+<section id="scrSettings" class="screen scroll">
+ <div class="wrap">
+  <header class="brand">
+   <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#123a63"/><path d="M10 54H56M10 54V8" stroke="#cfe3f5" stroke-width="3" stroke-linecap="round"/><g stroke="#35658f" stroke-width="1.5"><path d="M22 10V54M34 10V54M46 10V54M10 42H56M10 30H56M10 18H56"/></g><rect x="17" y="25" width="34" height="10" rx="5" fill="#f59e0b"/><circle cx="22" cy="30" r="2" fill="#fff"/><circle cx="34" cy="30" r="2" fill="#fff"/><circle cx="46" cy="30" r="2" fill="#fff"/><circle cx="46" cy="42" r="5" fill="#e11d48"/></svg>
+   <div><h1>Schiffe versenken</h1><p>Koordinaten setzen und ablesen · zu zweit an einem iPad</p></div>
+   <div class="sp"></div>
+   <button class="btn ghostbtn" id="btnHelp">Spielregeln</button>
+  </header>
+  <div class="cols">
+   <div class="col">
+    <div class="card">
+     <h2><span class="num">1</span>Spieler</h2>
+     <div class="seg" id="segOpp" style="margin-bottom:10px">
+      <button data-v="human">👥 Zu zweit<br><small>iPad wird weitergegeben</small></button>
+      <button data-v="cpu">💻 Gegen den Computer<br><small>allein spielen</small></button>
+     </div>
+     <div class="names">
+      <label><span class="dot" style="background:var(--p0)"></span><input id="name0" maxlength="16" autocomplete="off" spellcheck="false"></label>
+      <label id="name1wrap"><span class="dot" style="background:var(--p1)"></span><input id="name1" maxlength="16" autocomplete="off" spellcheck="false"></label>
+     </div>
+     <div class="cpuopts" id="cpuOpts">
+      <div class="sublbl">Stärke des Computers</div>
+      <div class="seg" id="segLevel">
+       <button data-v="easy">leicht</button><button data-v="mid">mittel</button><button data-v="hard">schwer</button>
+      </div>
+      <label class="tog"><input type="checkbox" id="tLocate"><span class="sw"></span><span class="tl">Schüsse des Computers selbst finden<small>Der Computer nennt die Koordinaten, du tippst den Punkt in deinem Meer an.</small></span></label>
+     </div>
+    </div>
+    <div class="card">
+     <h2><span class="num">2</span>Koordinatensystem</h2>
+     <div class="seg" id="segNeg">
+      <button data-v="0">nur positive Zahlen<br><small>1. Quadrant</small></button>
+      <button data-v="1">auch negative Zahlen<br><small>alle 4 Quadranten</small></button>
+     </div>
+     <div class="row" style="margin-top:6px">
+      <div class="rowlbl">Größe<small id="sizeText"></small></div>
+      <div class="stepper"><button id="sizeMinus" aria-label="kleiner">−</button><output id="sizeOut"></output><button id="sizePlus" aria-label="größer">+</button></div>
+     </div>
+     <div class="preview">
+      <svg id="prevBoard"></svg>
+      <div class="sizeinfo" id="sizeInfo"></div>
+     </div>
+    </div>
+   </div>
+   <div class="col">
+    <div class="card">
+     <h2><span class="num">3</span>Flotte</h2>
+     <div id="fleetRows"></div>
+     <label class="tog" style="border-top:1px solid #e2ebf2">
+      <input type="checkbox" id="tAuto"><span class="sw"></span>
+      <span class="tl">Flotte automatisch anpassen<small>passende Schiffe zur Spielfeldgröße wählen</small></span>
+     </label>
+     <div class="balance">
+      <div class="fleetsum" id="fleetSum"></div>
+      <div class="meter"><i id="meterMark"></i></div>
+      <div class="meterlbl"><span>lange Suche</span><span>gut</span><span>kaum Suche</span></div>
+      <div class="verdict" id="verdict"></div>
+      <div class="dur" id="duration"></div>
+     </div>
+    </div>
+    <div class="card">
+     <h2><span class="num">4</span>Schießen &amp; Regeln</h2>
+     <div class="seg" id="segMode">
+      <button data-v="type">Koordinaten<br>eintippen</button>
+      <button data-v="tap">Punkt antippen<br>&amp; ablesen</button>
+      <button data-v="mix">abwechselnd</button>
+     </div>
+     <div class="modehelp" id="modeHelp"></div>
+     <label class="tog" id="rowPenalty"><input type="checkbox" id="tPenalty"><span class="sw"></span><span class="tl">Falsch abgelesen → Schuss verfällt<small>sonst wird trotzdem geschossen</small></span></label>
+     <label class="tog"><input type="checkbox" id="tAgain"><span class="sw"></span><span class="tl">Nach einem Treffer nochmal schießen</span></label>
+     <label class="tog"><input type="checkbox" id="tNoTouch"><span class="sw"></span><span class="tl">Schiffe dürfen sich nicht berühren<small>auch nicht schräg – rund um jedes Schiff bleiben alle Punkte frei. Dafür passen weniger Schiffe aufs Feld.</small></span></label>
+     <label class="tog" id="rowMark"><input type="checkbox" id="tMark"><span class="sw"></span><span class="tl">Punkte um versenkte Schiffe als frei markieren<small>aus: Die Kinder überlegen selbst, wo nichts mehr liegen kann.</small></span></label>
+     <label class="tog"><input type="checkbox" id="tGuides"><span class="sw"></span><span class="tl">Weg zum Punkt einblenden<small>vom Ursprung erst entlang der x-Achse, dann in y-Richtung</small></span></label>
+     <label class="tog"><input type="checkbox" id="tSound"><span class="sw"></span><span class="tl">Töne</span></label>
+    </div>
+   </div>
+  </div>
+ </div>
+ <div class="startbar"><button class="btn big go" id="btnStart">Spiel starten</button></div>
+</section>
+
+<!-- ================= ÜBERGABE ================= -->
+<section id="scrCover" class="screen cover">
+ <div class="cover-card">
+  <svg viewBox="0 0 92 92" aria-hidden="true"><circle cx="46" cy="46" r="44" fill="var(--pc)" opacity=".15"/><rect x="20" y="16" width="52" height="64" rx="8" fill="#fff" stroke="var(--pc)" stroke-width="4"/><circle cx="46" cy="72" r="3" fill="var(--pc)"/><path d="M30 44h32M52 34l10 10-10 10" stroke="var(--pc)" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <h2 id="cvTitle"></h2>
+  <p id="cvText"></p>
+  <button class="btn big primary" id="cvBtn"></button>
+ </div>
+</section>
+
+<!-- ================= FLOTTE AUFSTELLEN ================= -->
+<section id="scrPlace" class="screen game">
+ <div class="topbar"><div class="who"><b id="plName"></b>&nbsp;stellt die Flotte auf</div><button class="xbtn" data-abort>Abbrechen</button></div>
+ <div class="layout">
+  <div class="boardbox"><div class="boardcap">Dein Meer – tippe auf die Gitterpunkte</div><svg class="board" id="plBoard"></svg></div>
+  <div class="panel">
+   <div class="pcard">
+    <div class="hint" id="plHint"></div>
+    <div class="shiplist" id="plList"></div>
+   </div>
+   <div class="pcard">
+    <div class="btnrow" style="margin-top:0"><button class="btn" id="plRot">↻ Drehen</button><button class="btn" id="plDel">Zurücknehmen</button></div>
+    <div class="btnrow"><button class="btn" id="plRand">Zufällig verteilen</button><button class="btn" id="plClear">Alle zurück</button></div>
+    <div class="msg" id="plMsg"></div>
+    <button class="btn big primary" id="plDone" style="margin-top:12px">Fertig</button>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- ================= SPIELZUG ================= -->
+<section id="scrPlay" class="screen game">
+ <div class="topbar"><div class="who"><b id="pyName"></b>&nbsp;ist dran</div><div class="tstats" id="pyStats"></div><button class="xbtn" data-abort>Beenden</button></div>
+ <div class="layout">
+  <div class="boardbox">
+   <div class="boardcap"><span id="pyCap"></span><div class="fleeticons" id="pyEnemy"></div></div>
+   <svg class="board" id="pyBoard"></svg>
+  </div>
+  <div class="panel">
+   <div class="pcard">
+    <div id="aimBox">
+     <div class="modetag" id="pyTag"></div>
+     <div class="prompt" id="pyPrompt"></div>
+     <div id="pyInputWrap">
+      <div class="cin"><span>(</span><button class="cf" data-f="x"><small>x</small><span id="vx"></span></button><span>|</span><button class="cf" data-f="y"><small>y</small><span id="vy"></span></button><span>)</span></div>
+      <div class="keypad" id="keypad">
+       <button data-k="7">7</button><button data-k="8">8</button><button data-k="9">9</button><button data-k="del" aria-label="löschen">⌫</button>
+       <button data-k="4">4</button><button data-k="5">5</button><button data-k="6">6</button><button data-k="neg" id="keyNeg">−</button>
+       <button data-k="1">1</button><button data-k="2">2</button><button data-k="3">3</button><button data-k="0">0</button>
+      </div>
+     </div>
+     <div class="msg" id="pyMsg"></div>
+     <button class="btn big primary fire" id="pyFire">Feuer!</button>
+    </div>
+    <div id="resBox" hidden>
+     <div class="res" id="resTitle"></div>
+     <div class="ressub" id="resSub"></div>
+     <div class="note" id="resNote" hidden></div>
+     <button class="btn big primary" id="resBtn"></button>
+    </div>
+   </div>
+   <div class="pcard own">
+    <div class="owncap" id="pyOwnCap">Deine Flotte</div>
+    <div class="report" id="pyReport"></div>
+    <svg id="pyOwn"></svg>
+   </div>
+  </div>
+ </div>
+</section>
+
+<!-- ================= SIEG ================= -->
+<section id="scrWin" class="screen scroll">
+ <div class="wrap">
+  <svg viewBox="0 0 80 80" width="84" height="84" aria-hidden="true"><path d="M24 12h32v14a16 16 0 0 1-32 0z" fill="#fbbf24"/><path d="M24 16H12v6a12 12 0 0 0 12 12M56 16h12v6a12 12 0 0 1-12 12" fill="none" stroke="#fbbf24" stroke-width="5"/><rect x="36" y="42" width="8" height="14" fill="#f59e0b"/><rect x="24" y="56" width="32" height="10" rx="3" fill="#fbbf24"/></svg>
+  <h1 class="wtitle" id="wnTitle"></h1>
+  <div class="wstats" id="wnStats"></div>
+  <div class="btnrow"><button class="btn big go" id="wnAgain">Revanche</button><button class="btn big" id="wnSet">Einstellungen</button></div>
+ </div>
+</section>
+
+<!-- ================= DIALOGE ================= -->
+<div class="modal" id="mHelp" hidden>
+ <div class="mbox">
+  <h2>Spielregeln</h2>
+  <ul>
+   <li>Jeder stellt geheim seine Flotte auf. Die Schiffe liegen <b>auf den Gitterpunkten</b> des Koordinatensystems – waagerecht oder senkrecht.</li>
+   <li>Abwechselnd wird auf einen Punkt im Meer des Gegners geschossen. Danach wird das iPad weitergegeben.</li>
+   <li><b>Koordinaten eintippen:</b> Du gibst (x | y) ein und siehst, wo dein Schuss landet.</li>
+   <li><b>Punkt antippen &amp; ablesen:</b> Du tippst einen Punkt an und musst seine Koordinaten richtig ablesen, damit der Schuss sitzt.</li>
+   <li>Merke: Erst <b>x</b> – nach rechts (oder links), dann <b>y</b> – nach oben (oder unten). Geschrieben wird z. B. (3 | 2).</li>
+   <li>Ist die Regel eingeschaltet, dürfen sich Schiffe <b>nicht berühren</b> – auch nicht schräg. Rund um ein versenktes Schiff muss man also nicht mehr suchen.</li>
+   <li><b>Wasser</b> = daneben, <b>Treffer</b> = ein Punkt eines Schiffs, <b>versenkt</b> = alle Punkte des Schiffs getroffen.</li>
+   <li>Wer zuerst die ganze gegnerische Flotte versenkt, gewinnt.</li>
+   <li><b>Gegen den Computer:</b> Der Computer sagt dir, wohin er schießt – du suchst den Punkt in deinem eigenen Meer.</li>
+  </ul>
+  <p style="color:var(--muted);font-size:15px">Tipp: Beim Übergeben schaut der andere Spieler weg, bis der Übergabe-Bildschirm erscheint.</p>
+  <button class="btn big primary" data-close style="margin-top:8px">Alles klar</button>
+ </div>
+</div>
+<div class="modal" id="mAbort" hidden>
+ <div class="mbox" style="max-width:440px;text-align:center">
+  <h2>Spiel beenden?</h2>
+  <p>Der aktuelle Spielstand geht verloren.</p>
+  <div class="btnrow"><button class="btn big" data-close>Weiterspielen</button><button class="btn big primary" id="abortYes" style="background:var(--bad)">Beenden</button></div>
+ </div>
+</div>
+
+<script>
+'use strict';
+/* ============ Grundlagen ============ */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const NAMES = {1:'Rettungsboot', 2:'U-Boot', 3:'Zerstörer', 4:'Schlachtschiff', 5:'Flugzeugträger'};
+const ARTIKEL = {1:'das', 2:'das', 3:'den', 4:'das', 5:'den'};   // Akkusativ
+const DEIN = {1:'dein', 2:'dein', 3:'deinen', 4:'dein', 5:'deinen'};
+const SHIPCOL = {1:'#ea6a0c', 2:'#0d9488', 3:'#7c3aed', 4:'#2563eb', 5:'#3b4a5e'};
+const SEQ = [2,3,1,4,5,3,2,4,1,3,2,5,4,1,3,2];   // Reihenfolge für Flottenvorschläge
+const DEF = {names:['Spieler 1','Spieler 2'], neg:false, max:8, fleet:{1:1,2:1,3:1,4:1,5:0},
+  autoFleet:true, mode:'type', penalty:true, again:true, touch:false, markAround:false, opponent:'human', cpuLevel:'mid', cpuLocate:true, guides:true, sound:true};
+const LS = 'sv-koordinaten-v1';
+let S = loadSettings();
+
+function loadSettings(){
+  try{
+    const o = JSON.parse(localStorage.getItem(LS));
+    if(o) return Object.assign({}, DEF, o, {fleet:Object.assign({}, DEF.fleet, o.fleet||{}), names:(o.names||DEF.names).slice(0,2)});
+  }catch(e){}
+  return JSON.parse(JSON.stringify(DEF));
+}
+function saveSettings(){ try{ localStorage.setItem(LS, JSON.stringify(S)); }catch(e){} }
+
+const sizeBounds = () => S.neg ? [2,6] : [4,12];
+const range = () => S.neg ? [-S.max, S.max] : [0, S.max];
+const fmt = n => n < 0 ? '−' + (-n) : '' + n;
+const coord = (x,y) => `(${fmt(x)}&thinsp;|&thinsp;${fmt(y)})`;
+const key = (x,y) => x + ',' + y;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const punkte = n => n === 1 ? '1 Punkt' : n + ' Punkte';
+
+function fleetLens(f){ f = f || S.fleet; const a = []; for(let L=5; L>=1; L--) for(let i=0; i<(f[L]||0); i++) a.push(L); return a; }
+
+function show(id){
+  $$('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+}
+function setPlayerColor(i){ document.documentElement.style.setProperty('--pc', i==null ? 'var(--p0)' : `var(--p${i})`); }
+
+/* ============ Zufall, Platzierung, Simulation ============ */
+function mulberry(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+
+// Schiffe zufällig auf ein n×n-Punktegitter legen (Indizes 0..n-1)
+function placeIdx(n, lens, touch, rnd){
+  const order = lens.map((l,i)=>i).sort((a,b)=>lens[b]-lens[a]);
+  for(let att=0; att<60; att++){
+    const occ = new Int16Array(n*n).fill(-1), ships = new Array(lens.length); let ok = true;
+    for(const id of order){
+      const L = lens[id]; let placed = false;
+      for(let k=0; k<120 && !placed; k++){
+        const h = rnd() < .5;
+        const x = Math.floor(rnd()*(h ? n-L+1 : n)), y = Math.floor(rnd()*(h ? n : n-L+1));
+        if(x<0 || y<0) break;
+        let good = true;
+        for(let i=0; i<L && good; i++){
+          const px = x+(h?i:0), py = y+(h?0:i);
+          for(let dx=-1; dx<=1 && good; dx++) for(let dy=-1; dy<=1; dy++){
+            if(touch && (dx||dy)) continue;
+            const qx=px+dx, qy=py+dy;
+            if(qx<0||qy<0||qx>=n||qy>=n) continue;
+            if(occ[qy*n+qx] >= 0){ good=false; break; }
+          }
+        }
+        if(good){ for(let i=0;i<L;i++) occ[(y+(h?0:i))*n + x+(h?i:0)] = id; ships[id] = {x,y,h,len:L}; placed = true; }
+      }
+      if(!placed){ ok=false; break; }
+    }
+    if(ok) return {occ, ships};
+  }
+  return null;
+}
+
+// einfacher Spieler: zufällig suchen, nach Treffer die Nachbarn abklappern
+function simShots(n, lens, occ, rnd, touch){
+  const N=n*n, shot=new Uint8Array(N), hp=new Array(lens.length).fill(0), tg=[];
+  let left = lens.reduce((a,b)=>a+b,0), shots=0;
+  while(left > 0){
+    let c = -1;
+    while(tg.length){ const t = tg.pop(); if(!shot[t]){ c=t; break; } }
+    if(c < 0){ do{ c = Math.floor(rnd()*N); }while(shot[c]); }
+    shot[c]=1; shots++;
+    const s = occ[c];
+    if(s >= 0){
+      left--; hp[s]++;
+      if(hp[s] < lens[s]){ const x=c%n, y=(c/n)|0; if(x>0)tg.push(c-1); if(x<n-1)tg.push(c+1); if(y>0)tg.push(c-n); if(y<n-1)tg.push(c+n); }
+      else if(!touch){
+        for(let q=0; q<N; q++){ if(occ[q] !== s) continue; const x=q%n, y=(q/n)|0;
+          for(let dx=-1;dx<=1;dx++) for(let dy=-1;dy<=1;dy++){ const qx=x+dx, qy=y+dy; if(qx>=0&&qy>=0&&qx<n&&qy<n) shot[qy*n+qx]=1; } }
+      }
+    }
+  }
+  return shots;
+}
+
+// Schüsse, bis der schnellere von zwei Spielern fertig ist (= Spielende)
+function simulate(n, lens, touch, pairs, seed){
+  if(!lens.length) return {ok:false, empty:true};
+  const rnd = mulberry(seed); let sum = 0;
+  for(let p=0; p<pairs; p++){
+    const a = placeIdx(n,lens,touch,rnd), b = placeIdx(n,lens,touch,rnd);
+    if(!a || !b) return {ok:false};
+    sum += Math.min(simShots(n,lens,a.occ,rnd,touch), simShots(n,lens,b.occ,rnd,touch));
+  }
+  return {ok:true, S:sum/pairs, P:n*n};
+}
+
+// Vorschlag: Schiffe belegen etwa 17 % der Gitterpunkte (wie beim klassischen 10×10-Spiel)
+function recommendFleet(){
+  const [lo,hi] = range(), n = hi-lo+1, tgt = .17*n*n, lens = [];
+  let sum = 0;
+  for(const L of SEQ){ if(Math.abs(sum+L-tgt) < Math.abs(sum-tgt)){ lens.push(L); sum += L; } else break; }
+  if(!lens.length) lens.push(2);
+  while(lens.length > 1 && !simulate(n, lens, S.touch, 3, 99).ok) lens.pop();
+  const f = {1:0,2:0,3:0,4:0,5:0};
+  lens.forEach(L => f[L]++);
+  S.fleet = f;
+}
+
+/* ============ Zeichnen ============ */
+function shipIcon(len, cls){
+  const w = 12 + len*14;
+  let s = `<svg class="${cls||''}" viewBox="0 0 ${w} 18" width="${w}" height="18"><rect x="1" y="2" width="${w-2}" height="14" rx="7" fill="${SHIPCOL[len]}"/>`;
+  for(let i=0;i<len;i++) s += `<circle cx="${13+i*14}" cy="9" r="2.6" fill="#fff"/>`;
+  return s + '</svg>';
+}
+
+const U = 40;
+function geom(lo, hi, neg){
+  const padL = neg ? .85 : 1.35, padB = neg ? .85 : 1.2, padR = 1.0, padT = .95;
+  return {lo, hi, padL, padT,
+    W:(hi-lo+padL+padR)*U, H:(hi-lo+padT+padB)*U,
+    sx:x => (x-lo+padL)*U, sy:y => (hi-y+padT)*U};
+}
+function capsule(pts, r, attrs){
+  const xs = pts.map(p=>p[0]), ys = pts.map(p=>p[1]);
+  const x = Math.min(...xs), X = Math.max(...xs), y = Math.min(...ys), Y = Math.max(...ys);
+  return {x, X, y, Y, r, attrs};
+}
+
+/* o: {lo,hi, mini, ships:[{len,pts,sel,sunk}], shipsStyle:'own'|'sunk', marks:{key:'hit'|'miss'},
+       sel:[x,y], highlight:[[x,y]], guide:[x,y], guideAnim, ghost:[x,y], last:[x,y]} */
+function renderBoard(svg, o){
+  const neg = o.lo < 0, g = geom(o.lo, o.hi, neg), {sx, sy, lo, hi} = g;
+  svg.setAttribute('viewBox', `0 0 ${g.W} ${g.H}`);
+  svg._g = g;
+  const span = hi - lo;
+  const fs = o.mini ? Math.min(26, 13 + span*1.3) : Math.min(24, 15 + span*.7);
+  let s = '';
+  s += `<rect class="sea" x="${sx(lo)-U*.5}" y="${sy(hi)-U*.5}" width="${(span+1)*U}" height="${(span+1)*U}" rx="10"/>`;
+  for(let v=lo; v<=hi; v++){
+    s += `<line class="gl" x1="${sx(v)}" y1="${sy(hi)-U*.5}" x2="${sx(v)}" y2="${sy(lo)+U*.5}"/>`;
+    s += `<line class="gl" x1="${sx(lo)-U*.5}" y1="${sy(v)}" x2="${sx(hi)+U*.5}" y2="${sy(v)}"/>`;
+  }
+  // Achsen mit Pfeilen
+  const xa0 = sx(lo) - (neg ? U*.5 : 0), xa1 = sx(hi) + U*.75, ya0 = sy(lo) + (neg ? U*.5 : 0), ya1 = sy(hi) - U*.75;
+  s += `<line class="ax" x1="${xa0}" y1="${sy(0)}" x2="${xa1-6}" y2="${sy(0)}"/><path class="axh" d="M${xa1} ${sy(0)} l-14 -7 v14z"/>`;
+  s += `<line class="ax" x1="${sx(0)}" y1="${ya0}" x2="${sx(0)}" y2="${ya1+6}"/><path class="axh" d="M${sx(0)} ${ya1} l-7 14 h14z"/>`;
+  s += `<text class="axn" x="${xa1-2}" y="${sy(0)+U*.72}" text-anchor="end" font-size="${fs*1.15}">x</text>`;
+  s += `<text class="axn" x="${sx(0)-U*.3}" y="${ya1+fs*.35}" text-anchor="end" font-size="${fs*1.15}">y</text>`;
+  // Gitterpunkte
+  for(let x=lo; x<=hi; x++) for(let y=lo; y<=hi; y++) s += `<circle class="gp" cx="${sx(x)}" cy="${sy(y)}" r="${U*.08}"/>`;
+  // Schiffe
+  (o.ships||[]).forEach(sh => {
+    const c = capsule(sh.pts), r = U*.34;
+    const x = sx(c.x)-r, y = sy(c.Y)-r, w = sx(c.X)-sx(c.x)+2*r, h = sy(c.y)-sy(c.Y)+2*r;
+    if(o.shipsStyle === 'sunk'){
+      s += `<rect class="sunkship" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/>`;
+    }else{
+      s += `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${SHIPCOL[sh.len]}" opacity="${sh.sunk ? .45 : .95}"/>`;
+      sh.pts.forEach(p => s += `<circle cx="${sx(p[0])}" cy="${sy(p[1])}" r="${U*.11}" fill="#fff"/>`);
+      if(sh.sel) s += `<rect class="shipsel" x="${x-5}" y="${y-5}" width="${w+10}" height="${h+10}" rx="${r+5}"/>`;
+    }
+  });
+  // Schüsse
+  const marks = o.marks || {};
+  Object.keys(marks).forEach(k => {
+    const [x,y] = k.split(',').map(Number), cx = sx(x), cy = sy(y);
+    if(marks[k] === 'free'){ if(!o.hideFree) s += `<circle class="free" cx="${cx}" cy="${cy}" r="${U*.15}"/>`; }
+    else if(marks[k] === 'miss') s += `<circle class="miss" cx="${cx}" cy="${cy}" r="${U*.2}"/>`;
+    else{
+      const d = U*.13;
+      s += `<circle class="hitc" cx="${cx}" cy="${cy}" r="${U*.27}"/><path class="hitx" d="M${cx-d} ${cy-d}L${cx+d} ${cy+d}M${cx+d} ${cy-d}L${cx-d} ${cy+d}"/>`;
+    }
+  });
+  // Beschriftung (über den Schiffen, damit sie immer lesbar bleibt)
+  const step = (o.mini && span > (neg ? 6 : 10)) ? 2 : 1;
+  for(let v=lo; v<=hi; v++){
+    if(v === 0 || v % step) continue;
+    s += `<text class="lbl" x="${sx(v) - (v<0 ? fs*.3 : 0)}" y="${sy(0)+fs*1.05+4}" text-anchor="middle" font-size="${fs}">${fmt(v)}</text>`;
+    s += `<text class="lbl" x="${sx(0)-8}" y="${sy(v)+fs*.36}" text-anchor="end" font-size="${fs}">${fmt(v)}</text>`;
+  }
+  s += `<text class="lbl" x="${sx(0)-8}" y="${sy(0)+fs*1.05+4}" text-anchor="end" font-size="${fs}">0</text>`;
+  (o.highlight||[]).forEach(p => s += `<circle class="pulse" cx="${sx(p[0])}" cy="${sy(p[1])}" r="${U*.44}"/>`);
+  if(o.ghost) s += `<circle class="ghost" cx="${sx(o.ghost[0])}" cy="${sy(o.ghost[1])}" r="${U*.38}"/>`;
+  if(o.guide){
+    const [gx,gy] = o.guide;
+    s += `<path class="guide" d="M${sx(0)} ${sy(0)}H${sx(gx)}V${sy(gy)}"${o.guideAnim ? ' data-anim="1"' : ''}/>`;
+  }
+  if(o.sel){
+    const cx = sx(o.sel[0]), cy = sy(o.sel[1]);
+    s += `<circle class="selring" cx="${cx}" cy="${cy}" r="${U*.4}"/>`;
+  }
+  if(o.last) s += `<circle class="pulse" cx="${sx(o.last[0])}" cy="${sy(o.last[1])}" r="${U*.46}"/>`;
+  svg.innerHTML = s;
+  const gp = svg.querySelector('path[data-anim]');
+  if(gp){
+    const L = gp.getTotalLength() || 1;
+    gp.style.strokeDasharray = L; gp.style.strokeDashoffset = L;
+    gp.getBoundingClientRect();
+    gp.style.transition = `stroke-dashoffset ${Math.max(.35, Math.min(1.1, L/U*.11))}s ease-in-out`;
+    requestAnimationFrame(() => gp.style.strokeDashoffset = 0);
+  }
+}
+
+// Tipp auf das Brett -> nächster Gitterpunkt
+function boardPoint(svg, e){
+  const g = svg._g; if(!g) return null;
+  const m = svg.getScreenCTM(); if(!m) return null;
+  const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse());
+  const ux = pt.x/U - g.padL + g.lo, uy = g.hi - (pt.y/U - g.padT);
+  const x = Math.round(ux), y = Math.round(uy);
+  if(x<g.lo || x>g.hi || y<g.lo || y>g.hi) return null;
+  if(Math.hypot(ux-x, uy-y) > .55) return null;
+  return [x,y];
+}
+function onBoardTap(svg, fn){
+  svg.addEventListener('pointerdown', e => { const p = boardPoint(svg, e); if(p){ e.preventDefault(); fn(p[0], p[1]); } });
+}
+
+/* ============ Einstellungen ============ */
+function buildFleetRows(){
+  let h = '';
+  for(let L=1; L<=5; L++){
+    h += `<div class="row"><div class="shipico">${shipIcon(L)}</div><div class="rowlbl">${NAMES[L]}<small>${punkte(L)}</small></div>
+      <div class="stepper"><button data-fl="${L}" data-d="-1" aria-label="weniger">−</button><output id="fl${L}"></output><button data-fl="${L}" data-d="1" aria-label="mehr">+</button></div></div>`;
+  }
+  $('#fleetRows').innerHTML = h;
+}
+
+let balanceOK = true;
+function renderSettings(){
+  $('#name0').value = S.names[0]; $('#name1').value = S.names[1];
+  const cpu = S.opponent === 'cpu';
+  $$('#segOpp button').forEach(b => b.classList.toggle('on', b.dataset.v === S.opponent));
+  $$('#segLevel button').forEach(b => b.classList.toggle('on', b.dataset.v === S.cpuLevel));
+  $('#name1wrap').hidden = cpu; $('#cpuOpts').hidden = !cpu; $('#tLocate').checked = S.cpuLocate;
+  $('#name0').placeholder = 'Spieler 1';
+  $$('#segNeg button').forEach(b => b.classList.toggle('on', (b.dataset.v === '1') === S.neg));
+  $$('#segMode button').forEach(b => b.classList.toggle('on', b.dataset.v === S.mode));
+  const [lo,hi] = range(), n = hi-lo+1;
+  $('#sizeOut').textContent = S.neg ? '±' + S.max : S.max;
+  $('#sizeText').textContent = `x und y von ${fmt(lo)} bis ${fmt(hi)}`;
+  const [bmin,bmax] = sizeBounds();
+  $('#sizeMinus').disabled = S.max <= bmin; $('#sizePlus').disabled = S.max >= bmax;
+  $('#sizeInfo').innerHTML = `<b>${n*n}</b> Gitterpunkte<br>${n} × ${n}<br>${S.neg ? 'mit negativen Koordinaten' : 'nur positive Koordinaten'}`;
+  renderBoard($('#prevBoard'), {lo, hi, mini:true});
+  for(let L=1; L<=5; L++){
+    $('#fl'+L).textContent = S.fleet[L];
+    $(`[data-fl="${L}"][data-d="-1"]`).disabled = S.fleet[L] <= 0;
+    $(`[data-fl="${L}"][data-d="1"]`).disabled = S.fleet[L] >= 4;
+  }
+  $('#tAuto').checked = S.autoFleet; $('#tPenalty').checked = S.penalty; $('#tAgain').checked = S.again;
+  $('#tNoTouch').checked = !S.touch; $('#tMark').checked = S.markAround; $('#rowMark').classList.toggle('dis', S.touch); $('#tGuides').checked = S.guides; $('#tSound').checked = S.sound;
+  $('#rowPenalty').classList.toggle('dis', S.mode === 'type');
+  $('#modeHelp').textContent = {
+    type:'Übt das Setzen: Die Koordinaten werden eingetippt, dann sieht man, wo der Schuss landet.',
+    tap:'Übt das Ablesen: Ein Punkt wird angetippt, seine Koordinaten müssen richtig eingegeben werden.',
+    mix:'Beide Arten wechseln sich bei jedem Schuss ab.'}[S.mode];
+  renderBalance();
+}
+
+function renderBalance(){
+  const lens = fleetLens(), [lo,hi] = range(), n = hi-lo+1, P = n*n;
+  const pts = lens.reduce((a,b)=>a+b,0);
+  $('#fleetSum').innerHTML = lens.length
+    ? `<b>${lens.length} ${lens.length===1?'Schiff':'Schiffe'}</b> mit <b>${pts}</b> von ${P} Gitterpunkten`
+    : 'Noch keine Schiffe gewählt.';
+  const v = $('#verdict'), d = $('#duration'), mark = $('#meterMark');
+  if(!lens.length){
+    v.className = 'verdict bad'; v.textContent = 'Wähle mindestens ein Schiff.'; d.textContent = ''; mark.style.left = '0%';
+    balanceOK = false; $('#btnStart').disabled = true; return;
+  }
+  const r = simulate(n, lens, S.touch, 40, 4242);
+  if(!r.ok){
+    v.className = 'verdict bad';
+    v.textContent = 'Die Schiffe passen nicht auf das Spielfeld. Wähle weniger oder kleinere Schiffe' + (S.touch ? '.' : ' – oder schalte die Regel „Schiffe dürfen sich nicht berühren“ aus.');
+    d.textContent = ''; mark.style.left = '100%'; balanceOK = false; $('#btnStart').disabled = true; return;
+  }
+  balanceOK = true; $('#btnStart').disabled = false;
+  // Verhältnis Spielfeld/Flotte: Trefferquote (wie viel muss gesucht werden?)
+  const shots = pts + (r.S - pts) * 1.15, q = pts / shots, each = Math.max(1, Math.round(1/q));
+  let pos;
+  if(q <= .12) pos = 25 * Math.max(0, (q - .03) / .09);
+  else if(q <= .45) pos = 25 + 50 * (q - .12) / .33;
+  else pos = 75 + 25 * Math.min(1, (q - .45) / .3);
+  mark.style.left = pos + '%';
+  if(q < .12){ v.className = 'verdict warn'; v.textContent = `Lange Suche: Nur etwa jeder ${each}. Schuss trifft – das wird zäh. Mehr Schiffe oder ein kleineres Spielfeld helfen.`; }
+  else if(q > .45){ v.className = 'verdict warn'; v.textContent = 'Kaum Suche: Fast jeder zweite Schuss trifft. Weniger Schiffe oder ein größeres Spielfeld machen es spannender.'; }
+  else { v.className = 'verdict ok'; v.textContent = `Gutes Verhältnis von Spielfeldgröße und Flotte – etwa jeder ${each}. Schuss trifft.`; }
+  // Dauer getrennt davon: mehr Schiffe = mehr Treffer nötig = längeres Spiel
+  let sec = {type:9, tap:12, mix:10.5}[S.mode];
+  if(S.opponent === 'cpu') sec = (sec + (S.cpuLocate ? 7 : 3)) / 2;
+  const min = Math.max(2, Math.round(2 * shots * sec / 60));
+  let t = `Etwa ${Math.round(shots)} Schüsse pro Spieler (davon ${pts} Treffer) · Spieldauer ca. ${min} Minuten.`;
+  if(min > 25) t += ' Das ist eine lange Partie – ein kleineres Koordinatensystem oder weniger Schiffe verkürzen sie.';
+  d.textContent = t;
+}
+
+function initSettings(){
+  buildFleetRows();
+  $('#name0').addEventListener('input', e => { S.names[0] = e.target.value; saveSettings(); });
+  $('#name1').addEventListener('input', e => { S.names[1] = e.target.value; saveSettings(); });
+  $$('#segNeg button').forEach(b => b.addEventListener('click', () => {
+    const neg = b.dataset.v === '1'; if(neg === S.neg) return;
+    S.max = neg ? Math.max(2, Math.min(6, Math.floor(S.max/2))) : Math.max(4, Math.min(12, S.max*2));
+    S.neg = neg; if(S.autoFleet) recommendFleet(); saveSettings(); renderSettings();
+  }));
+  const size = d => { const [a,b] = sizeBounds(); S.max = Math.max(a, Math.min(b, S.max+d)); if(S.autoFleet) recommendFleet(); saveSettings(); renderSettings(); };
+  $('#sizeMinus').addEventListener('click', () => size(-1));
+  $('#sizePlus').addEventListener('click', () => size(1));
+  $('#fleetRows').addEventListener('click', e => {
+    const b = e.target.closest('button[data-fl]'); if(!b) return;
+    const L = +b.dataset.fl; S.fleet[L] = Math.max(0, Math.min(4, S.fleet[L] + (+b.dataset.d)));
+    S.autoFleet = false; saveSettings(); renderSettings();
+  });
+  $$('#segMode button').forEach(b => b.addEventListener('click', () => { S.mode = b.dataset.v; saveSettings(); renderSettings(); }));
+  $$('#segOpp button').forEach(b => b.addEventListener('click', () => { S.opponent = b.dataset.v; saveSettings(); renderSettings(); }));
+  $$('#segLevel button').forEach(b => b.addEventListener('click', () => { S.cpuLevel = b.dataset.v; saveSettings(); renderSettings(); }));
+  const tog = (id, prop, after) => $(id).addEventListener('change', e => { S[prop] = e.target.checked; if(after) after(); saveSettings(); renderSettings(); });
+  tog('#tAuto', 'autoFleet', () => { if(S.autoFleet) recommendFleet(); });
+  $('#tNoTouch').addEventListener('change', e => { S.touch = !e.target.checked; if(S.autoFleet) recommendFleet(); saveSettings(); renderSettings(); });
+  tog('#tMark', 'markAround'); tog('#tLocate', 'cpuLocate');
+  tog('#tPenalty', 'penalty'); tog('#tAgain', 'again'); tog('#tGuides', 'guides');
+  tog('#tSound', 'sound', () => { if(S.sound) sfx('place'); });
+  $('#btnHelp').addEventListener('click', () => $('#mHelp').hidden = false);
+  $$('[data-close]').forEach(b => b.addEventListener('click', () => b.closest('.modal').hidden = true));
+  $('#btnStart').addEventListener('click', () => { if(balanceOK) startGame(); });
+}
+
+/* ============ Töne ============ */
+let AC = null;
+function audio(){ if(!AC){ try{ AC = new (window.AudioContext || window.webkitAudioContext)(); }catch(e){ AC = null; } } if(AC && AC.state === 'suspended') AC.resume(); return AC; }
+function noise(a, t0, dur, type, freq, vol){
+  const len = Math.floor(a.sampleRate*dur), buf = a.createBuffer(1, len, a.sampleRate), d = buf.getChannelData(0);
+  for(let i=0;i<len;i++) d[i] = Math.random()*2-1;
+  const src = a.createBufferSource(); src.buffer = buf;
+  const f = a.createBiquadFilter(); f.type = type; f.frequency.value = freq;
+  const g = a.createGain(); g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0+dur);
+  src.connect(f); f.connect(g); g.connect(a.destination); src.start(t0);
+}
+function tone(a, t0, dur, f0, f1, vol, type){
+  const o = a.createOscillator(), g = a.createGain(); o.type = type||'sine';
+  o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(f1, t0+dur);
+  g.gain.setValueAtTime(vol, t0); g.gain.exponentialRampToValueAtTime(.001, t0+dur);
+  o.connect(g); g.connect(a.destination); o.start(t0); o.stop(t0+dur);
+}
+function sfx(kind){
+  if(!S.sound) return; const a = audio(); if(!a) return; const t = a.currentTime + .01;
+  if(kind === 'place') tone(a, t, .12, 520, 780, .15, 'triangle');
+  else if(kind === 'key') tone(a, t, .05, 900, 900, .05, 'sine');
+  else if(kind === 'shoot') noise(a, t, .35, 'bandpass', 1400, .15);
+  else if(kind === 'miss'){ noise(a, t, .6, 'bandpass', 700, .5); tone(a, t, .25, 600, 180, .08); }
+  else if(kind === 'hit'){ noise(a, t, .7, 'lowpass', 500, .9); tone(a, t, .45, 140, 45, .45); }
+  else if(kind === 'sunk'){ noise(a, t, .8, 'lowpass', 500, .9); tone(a, t, .5, 140, 40, .45); noise(a, t+.28, 1, 'lowpass', 300, .8); tone(a, t+.3, .7, 110, 30, .4); }
+  else if(kind === 'wrong'){ tone(a, t, .18, 330, 300, .15, 'square'); tone(a, t+.2, .3, 250, 200, .15, 'square'); }
+  else if(kind === 'win'){ [523,659,784,1047].forEach((f,i) => tone(a, t+i*.14, .35, f, f, .18, 'triangle')); }
+}
+
+/* ============ Spielablauf ============ */
+let G = null, PL = null, T = null, starter = 0;
+
+function playerName(i){ const n = (S.names[i]||'').trim(); return n || ('Spieler ' + (i+1)); }
+
+function startGame(){
+  saveSettings();
+  const [lo,hi] = range();
+  const cpu = S.opponent === 'cpu';
+  G = {lo, hi, lens:fleetLens(), cur:0, report:[[],[]], mixCount:[0,0], cpu,
+       P:[0,1].map(i => ({name:(cpu && i === 1) ? 'Computer' : playerName(i), ships:[], recv:{}, stats:{shots:0, hits:0, err:0, reads:0, loc:0, locErr:0}}))};
+  audio();
+  if(cpu) openPlace(0); else placeFor(0);
+}
+
+function cover(i, title, text, btn, fn){
+  setPlayerColor(i);
+  $('#cvTitle').innerHTML = title; $('#cvText').innerHTML = text; $('#cvBtn').textContent = btn;
+  $('#cvBtn').onclick = fn;
+  show('scrCover');
+}
+
+function placeFor(i){
+  const me = G.P[i].name, other = G.P[1-i].name;
+  cover(i, `${esc(me)}, stell deine Flotte auf!`,
+    `Gib das iPad an <b>${esc(me)}</b>.<br>${esc(other)} schaut bitte weg.`, `Ich bin ${me} – los!`, () => openPlace(i));
+}
+
+/* ---------- Flotte aufstellen ---------- */
+function shipPts(s){ const a = []; for(let k=0;k<s.len;k++) a.push(s.h ? [s.x+k, s.y] : [s.x, s.y+k]); return a; }
+
+function openPlace(i){
+  G.cur = i;
+  PL = {i, sel:0, msg:'', ships:G.lens.map(len => ({len, placed:false, x:0, y:0, h:true}))};
+  $('#plName').textContent = G.P[i].name;
+  show('scrPlace'); renderPlace();
+}
+
+function blockedSet(except){
+  const set = new Set();
+  PL.ships.forEach((s,j) => {
+    if(!s.placed || j === except) return;
+    shipPts(s).forEach(([x,y]) => {
+      if(S.touch) set.add(key(x,y));
+      else for(let dx=-1;dx<=1;dx++) for(let dy=-1;dy<=1;dy++) set.add(key(x+dx,y+dy));
+    });
+  });
+  return set;
+}
+function fits(c, except){
+  const bl = blockedSet(except);
+  return shipPts(c).every(([x,y]) => x>=G.lo && x<=G.hi && y>=G.lo && y<=G.hi && !bl.has(key(x,y)));
+}
+// Schiff j so legen, dass es den Punkt (x|y) enthält – bevorzugt mit (x|y) als Anfang
+function tryPut(j, x, y, h){
+  const s = PL.ships[j];
+  for(let k=0; k<s.len; k++){
+    const c = {len:s.len, h, x:h ? x-k : x, y:h ? y : y-k};
+    if(fits(c, j)){ Object.assign(s, c, {placed:true}); return true; }
+  }
+  return false;
+}
+function noRoomMsg(){ return S.touch ? 'Hier ist kein Platz für dieses Schiff.' : 'Hier ist kein Platz. Denk dran: Schiffe dürfen sich nicht berühren – auch nicht schräg.'; }
+
+function placeTap(x, y){
+  const hit = PL.ships.findIndex(s => s.placed && shipPts(s).some(p => p[0]===x && p[1]===y));
+  PL.msg = '';
+  if(hit >= 0){
+    if(PL.sel === hit) rotateSel(); else PL.sel = hit;
+    renderPlace(); return;
+  }
+  const j = PL.sel;
+  if(j == null){ PL.msg = 'Wähle zuerst ein Schiff aus der Liste.'; renderPlace(); return; }
+  if(tryPut(j, x, y, PL.ships[j].h)){
+    sfx('place');
+    const nxt = PL.ships.findIndex(t => !t.placed);
+    PL.sel = nxt >= 0 ? nxt : j;
+  }else PL.msg = noRoomMsg();
+  renderPlace();
+}
+function rotateSel(){
+  const j = PL.sel; if(j == null) return;
+  const s = PL.ships[j];
+  if(!s.placed){ s.h = !s.h; return; }
+  if(s.len === 1) return;
+  const old = {x:s.x, y:s.y, h:s.h};
+  s.placed = false;
+  if(tryPut(j, old.x, old.y, !old.h)) sfx('place');
+  else { Object.assign(s, old, {placed:true}); PL.msg = 'Zum Drehen ist hier kein Platz.'; }
+}
+
+function renderPlace(){
+  const sel = PL.sel != null ? PL.ships[PL.sel] : null;
+  renderBoard($('#plBoard'), {lo:G.lo, hi:G.hi,
+    ships:PL.ships.map((s,j) => s.placed ? {len:s.len, pts:shipPts(s), sel:j===PL.sel} : null).filter(Boolean)});
+  const allDone = PL.ships.every(s => s.placed);
+  let hint;
+  if(allDone) hint = '<b>Alle Schiffe sind gesetzt!</b> Kontrolliere die Koordinaten in der Liste und tippe auf „Fertig“.';
+  else if(sel && !sel.placed) hint = `Tippe auf einen Gitterpunkt, um ${ARTIKEL[sel.len]} <b>${NAMES[sel.len]}</b> (${punkte(sel.len)}) zu setzen.` +
+      (sel.len > 1 ? ` Ausrichtung: <b>${sel.h ? 'waagerecht ↔' : 'senkrecht ↕'}</b>` : '');
+  else hint = 'Tippe ein gesetztes Schiff nochmal an, um es zu drehen – oder tippe auf einen freien Punkt, um es zu versetzen.';
+  if(sel && sel.placed && !allDone) hint = 'Schiff ausgewählt: Nochmal antippen dreht es, ein freier Punkt versetzt es.';
+  $('#plHint').innerHTML = hint;
+  $('#plList').innerHTML = PL.ships.map((s,j) => {
+    let co = 'noch nicht gesetzt';
+    if(s.placed){ const p = shipPts(s), a = p[0], b = p[p.length-1]; co = s.len === 1 ? coord(a[0],a[1]) : `${coord(a[0],a[1])} bis ${coord(b[0],b[1])}`; }
+    return `<button class="si${j===PL.sel?' sel':''}${s.placed?' done':''}" data-j="${j}"><span class="shipico">${shipIcon(s.len)}</span><span><span class="nm">${NAMES[s.len]}</span><br><span class="co">${co}</span></span></button>`;
+  }).join('');
+  $('#plMsg').textContent = PL.msg;
+  $('#plRot').disabled = !sel || sel.len === 1;
+  $('#plDel').disabled = !sel || !sel.placed;
+  $('#plClear').disabled = !PL.ships.some(s => s.placed);
+  $('#plDone').disabled = !allDone;
+}
+
+function placeDone(){
+  const me = G.P[PL.i];
+  me.ships = PL.ships.map(s => ({len:s.len, pts:shipPts(s), hits:0, sunk:false}));
+  if(G.cpu){
+    const n = G.hi-G.lo+1, r = placeIdx(n, G.lens, S.touch, Math.random);
+    G.P[1].ships = r.ships.map(c => ({len:c.len, pts:shipPts({len:c.len, h:c.h, x:c.x+G.lo, y:c.y+G.lo}), hits:0, sunk:false}));
+    G.cur = starter;
+    if(starter === 1) openCpuTurn(); else openTurn();
+    return;
+  }
+  if(PL.i === 0){ placeFor(1); return; }
+  G.cur = starter;
+  const nm = G.P[starter].name;
+  cover(starter, `${esc(nm)} beginnt!`, `Beide Flotten sind aufgestellt.<br>Gib das iPad an <b>${esc(nm)}</b>.`, `Ich bin ${nm} – los!`, openTurn);
+}
+
+function initPlace(){
+  onBoardTap($('#plBoard'), placeTap);
+  $('#plList').addEventListener('click', e => { const b = e.target.closest('.si'); if(!b) return; PL.sel = +b.dataset.j; PL.msg = ''; renderPlace(); });
+  $('#plRot').addEventListener('click', () => { PL.msg = ''; rotateSel(); renderPlace(); });
+  $('#plDel').addEventListener('click', () => { const s = PL.ships[PL.sel]; if(s){ s.placed = false; PL.msg = ''; renderPlace(); } });
+  $('#plClear').addEventListener('click', () => { PL.ships.forEach(s => s.placed = false); PL.sel = 0; PL.msg = ''; renderPlace(); });
+  $('#plRand').addEventListener('click', () => {
+    const n = G.hi-G.lo+1, r = placeIdx(n, PL.ships.map(s => s.len), S.touch, Math.random);
+    if(!r){ PL.msg = 'Das hat nicht geklappt – bitte nochmal versuchen.'; renderPlace(); return; }
+    r.ships.forEach((c,j) => Object.assign(PL.ships[j], {x:c.x+G.lo, y:c.y+G.lo, h:c.h, placed:true}));
+    PL.msg = ''; sfx('place'); renderPlace();
+  });
+  $('#plDone').addEventListener('click', placeDone);
+}
+
+/* ---------- Spielzug ---------- */
+function openTurn(){
+  const i = G.cur;
+  T = {report:G.report[i]}; G.report[i] = [];
+  setPlayerColor(i);
+  $('#pyName').textContent = G.P[i].name;
+
+  show('scrPlay');
+  newAim();
+}
+
+function newAim(){
+  const i = G.cur;
+  let mode = S.mode;
+  if(mode === 'mix') mode = (G.mixCount[i]++ % 2) ? 'tap' : 'type';
+  Object.assign(T, {mode, phase:'aim', sel:null, vx:'', vy:'', f:'x', guide:null, guideAnim:false, ghost:null, last:null, msg:'', res:null});
+  renderTurn();
+}
+
+function parseVal(v){ if(v === '' || v === '−') return null; const n = parseInt(v.replace('−',''), 10); return v[0] === '−' ? -n : n; }
+
+function renderTurn(){
+  if(T.cpu) return renderCpuTurn();
+  const i = G.cur, me = G.P[i], opp = G.P[1-i];
+  $('#pyCap').innerHTML = `Meer von <b>${esc(opp.name)}</b>`;
+  $('#pyOwnCap').textContent = 'Deine Flotte';
+  $('#pyStats').textContent = `Schüsse: ${me.stats.shots} · Treffer: ${me.stats.hits}`;
+  $('#pyEnemy').innerHTML = opp.ships.slice().sort((a,b) => b.len-a.len).map(s => shipIcon(s.len, s.sunk ? 'sunk' : '')).join('');
+  renderBoard($('#pyBoard'), {lo:G.lo, hi:G.hi, marks:opp.recv, shipsStyle:'sunk',
+    ships:opp.ships.filter(s => s.sunk), sel:T.sel, guide:T.guide, guideAnim:T.guideAnim, ghost:T.ghost, last:T.last});
+  T.guideAnim = false;
+  renderOwn();
+  renderAim();
+}
+
+function renderOwn(){
+  const me = G.P[G.cur], opp = G.P[1-G.cur];
+  renderBoard($('#pyOwn'), {lo:G.lo, hi:G.hi, mini:true, hideFree:true, ships:me.ships, marks:me.recv, highlight:T.report.map(r => [r.x, r.y])});
+  const word = {miss:'Wasser', hit:'Treffer', sunk:'versenkt'};
+  $('#pyReport').innerHTML = T.report.length
+    ? `<b>${esc(opp.name)}</b> hat geschossen: ` + T.report.map(r => `${coord(r.x,r.y)} ${word[r.res]}`).join(', ')
+    : (Object.keys(me.recv).length ? 'Kein neuer Schuss auf deine Flotte.' : 'Noch keine Schüsse auf deine Flotte.');
+}
+
+function renderAim(){
+  const aim = T.phase !== 'result';
+  $('#aimBox').hidden = !aim; $('#resBox').hidden = aim;
+  if(!aim) return renderResult();
+  const opp = G.P[1-G.cur];
+  $('#pyInputWrap').hidden = false; $('#pyFire').hidden = false;
+  $('#pyTag').textContent = T.mode === 'type' ? 'Koordinaten eintippen' : 'Punkt antippen & ablesen';
+  let p;
+  if(T.mode === 'type') p = `Wohin schießt du? Gib zuerst <b><i>x</i></b>, dann <b><i>y</i></b> ein.`;
+  else if(!T.sel) p = `Tippe im Meer von <b>${esc(opp.name)}</b> auf einen Gitterpunkt, auf den du schießen willst.`;
+  else p = `Lies die Koordinaten deines markierten Punktes ab und tippe sie ein.`;
+  $('#pyPrompt').innerHTML = p;
+  const locked = T.phase !== 'aim' || (T.mode === 'tap' && !T.sel);
+  $('#pyInputWrap').classList.toggle('dim', locked);
+  $('#vx').textContent = T.vx; $('#vy').textContent = T.vy;
+  $$('.cf').forEach(b => b.classList.toggle('act', b.dataset.f === T.f && !locked));
+  $('#keyNeg').classList.toggle('inv', !S.neg);
+  $('#pyMsg').innerHTML = T.msg;
+  $('#pyFire').disabled = locked || parseVal(T.vx) == null || parseVal(T.vy) == null;
+}
+
+function keyPress(k){
+  if(T.phase !== 'aim' || (T.mode === 'tap' && !T.sel)) return;
+  const f = T.f; let v = f === 'x' ? T.vx : T.vy;
+  if(k === 'del'){
+    if(v === ''){ if(f === 'y') T.f = 'x'; }
+    else v = v.slice(0, -1);
+  }else if(k === 'neg'){
+    if(!S.neg) return;
+    v = v[0] === '−' ? v.slice(1) : '−' + v;
+  }else{
+    const sg = v[0] === '−' ? '−' : '';
+    let dg = v.replace('−', '');
+    if(dg === '0') dg = '';
+    if(dg.length >= 2) return;
+    dg += k; v = sg + dg;
+    if(f === 'x' && !S.neg && (parseInt(dg,10)*10 > S.max || dg.length >= 2)) T.f = 'y';
+  }
+  if(f === 'x') T.vx = v; else T.vy = v;
+  T.msg = ''; sfx('key');
+  renderAim();
+}
+
+function targetTap(x, y){
+  if(T.cpu) return cpuTap(x, y);
+  if(T.phase !== 'aim') return;
+  if(T.mode === 'type'){ T.msg = 'Gib die Koordinaten unten über die Tasten ein.'; renderAim(); return; }
+  const m = G.P[1-G.cur].recv[key(x,y)];
+  if(m){ T.msg = m === 'free' ? 'Hier kann kein Schiff liegen – der Punkt grenzt an ein versenktes Schiff.' : 'Auf diesen Punkt hast du schon geschossen.'; renderAim(); return; }
+  T.sel = [x,y]; T.vx = ''; T.vy = ''; T.f = 'x'; T.msg = '';
+  sfx('key'); renderTurn();
+}
+
+function fire(){
+  if(T.phase !== 'aim') return;
+  const x = parseVal(T.vx), y = parseVal(T.vy);
+  if(x == null || y == null){ T.msg = 'Gib beide Koordinaten ein.'; renderAim(); return; }
+  const me = G.P[G.cur], opp = G.P[1-G.cur];
+  const inRange = (a,b) => a>=G.lo && a<=G.hi && b>=G.lo && b<=G.hi;
+  if(T.mode === 'type'){
+    if(!inRange(x,y)){ T.msg = `Der Punkt ${coord(x,y)} liegt nicht im Koordinatensystem: x und y gehen von ${fmt(G.lo)} bis ${fmt(G.hi)}.`; renderAim(); return; }
+    const m = opp.recv[key(x,y)];
+    if(m === 'free'){ T.msg = `Auf ${coord(x,y)} kann kein Schiff liegen – der Punkt grenzt an ein versenktes Schiff. Wähle einen anderen Punkt.`; renderAim(); return; }
+    if(m){ T.msg = `Auf ${coord(x,y)} hast du schon geschossen. Wähle einen anderen Punkt.`; renderAim(); return; }
+    shoot(x, y, null);
+    return;
+  }
+  const [px,py] = T.sel;
+  me.stats.reads++;
+  if(x === px && y === py){ shoot(px, py, null); return; }
+  me.stats.err++;
+  let note = `Du hast ${coord(x,y)} eingegeben. Dein Punkt hat aber die Koordinaten <b>${coord(px,py)}</b>.`;
+  if(x === py && y === px) note += ' Du hast <b>x und y vertauscht</b>: Zuerst kommt x (nach rechts/links), dann y (nach oben/unten).';
+  else if(x === px) note += ' Der x-Wert stimmt, schau dir y nochmal an.';
+  else if(y === py) note += ' Der y-Wert stimmt, schau dir x nochmal an.';
+  T.ghost = inRange(x,y) && !(x===px && y===py) ? [x,y] : null;
+  sfx('wrong');
+  if(!S.penalty){ shoot(px, py, note + ' Der Schuss geht trotzdem los.'); return; }
+  T.phase = 'anim'; T.guide = [px,py]; T.guideAnim = S.guides; if(!S.guides) T.guide = null;
+  renderTurn();
+  const turn = T; setTimeout(() => { if(!G || T !== turn) return; T.phase = 'result'; T.res = {kind:'lost', x:px, y:py, note}; renderAim(); }, S.guides ? 900 : 200);
+}
+
+function shoot(x, y, note){
+  T.phase = 'anim';
+  T.guide = S.guides ? [x,y] : null; T.guideAnim = S.guides;
+  T.sel = T.mode === 'tap' ? [x,y] : null;
+  renderTurn(); sfx('shoot');
+  const turn = T;
+  setTimeout(() => {
+    if(!G || T !== turn) return;
+    const me = G.P[G.cur], opp = G.P[1-G.cur], k = key(x,y);
+    const ship = opp.ships.find(s => s.pts.some(p => p[0]===x && p[1]===y));
+    me.stats.shots++;
+    let kind = 'miss';
+    if(ship){
+      ship.hits++; me.stats.hits++; opp.recv[k] = 'hit';
+      kind = ship.hits >= ship.len ? 'sunk' : 'hit';
+      if(kind === 'sunk'){
+        ship.sunk = true;
+        if(!S.touch && S.markAround) ship.pts.forEach(([px,py]) => {
+          for(let dx=-1;dx<=1;dx++) for(let dy=-1;dy<=1;dy++){
+            const qx=px+dx, qy=py+dy, q=key(qx,qy);
+            if(qx>=G.lo && qx<=G.hi && qy>=G.lo && qy<=G.hi && !opp.recv[q]) opp.recv[q] = 'free';
+          }
+        });
+      }
+    }else opp.recv[k] = 'miss';
+    G.report[1-G.cur].push({x, y, res:kind});
+    const won = opp.ships.every(s => s.sunk);
+    T.res = {kind, x, y, ship, note, won};
+    T.phase = 'result'; T.sel = null; T.last = [x,y];
+    sfx(won ? 'sunk' : kind);
+    renderTurn();
+    if(won) setTimeout(() => sfx('win'), 900);
+  }, S.guides ? 1000 : 250);
+}
+
+function renderResult(){
+  const r = T.res, opp = G.P[1-G.cur];
+  const t = $('#resTitle');
+  t.className = 'res ' + r.kind;
+  t.textContent = {miss:'Wasser!', hit:'Treffer!', sunk:'Versenkt!', lost:'Schuss verfällt'}[r.kind];
+  let sub = r.kind === 'lost' ? 'Falsch abgelesen' : `Schuss auf ${coord(r.x, r.y)}`;
+  if(r.kind === 'sunk') sub += T.cpu ? `<br>Der Computer hat ${DEIN[r.ship.len]} <b>${NAMES[r.ship.len]}</b> versenkt.` : `<br>Du hast ${ARTIKEL[r.ship.len]} <b>${NAMES[r.ship.len]}</b> versenkt.`;
+  if(r.kind === 'sunk' && !r.won && !S.touch && !T.cpu) sub += S.markAround ? '<br><small>Die Punkte rundherum sind jetzt als frei markiert.</small>' : '<br><small>Tipp: Rund um das Schiff kann nichts mehr liegen.</small>';
+  $('#resSub').innerHTML = sub;
+  $('#resNote').hidden = !r.note; $('#resNote').innerHTML = r.note || '';
+  const b = $('#resBtn');
+  if(r.won){ b.textContent = T.cpu ? 'Zur Auswertung' : 'Zur Siegerehrung'; b.onclick = showWin; }
+  else if((r.kind === 'hit' || r.kind === 'sunk') && S.again){ b.textContent = T.cpu ? 'Der Computer schießt nochmal' : 'Nochmal schießen'; b.onclick = T.cpu ? newCpuAim : newAim; }
+  else if(G.cpu){ b.textContent = T.cpu ? 'Weiter – du bist dran' : 'Weiter – der Computer ist dran'; b.onclick = endTurn; }
+  else { b.textContent = `Zug beenden – iPad an ${opp.name}`; b.onclick = endTurn; }
+}
+
+function endTurn(){
+  G.cur = 1 - G.cur;
+  if(G.cpu){ if(G.cur === 1) openCpuTurn(); else openTurn(); return; }
+  const nm = G.P[G.cur].name;
+  cover(G.cur, `${esc(nm)} ist dran`, `Gib das iPad an <b>${esc(nm)}</b>.`, `Ich bin ${nm} – los!`, openTurn);
+}
+
+
+/* ---------- Computergegner ---------- */
+function openCpuTurn(){
+  T = {cpu:true, report:[]};
+  G.report[0] = G.report[0] || [];
+  setPlayerColor(1);
+  $('#pyName').textContent = 'Der Computer';
+  show('scrPlay');
+  newCpuAim();
+}
+
+function newCpuAim(){
+  Object.assign(T, {cpu:true, mode:'cpu', phase:'cpuAim', target:cpuPick(), tries:0, sel:null, guide:null, guideAnim:false, ghost:null, last:null, msg:'', res:null});
+  renderTurn();
+  if(!S.cpuLocate){
+    const tg = T.target;
+    setTimeout(() => { if(T && T.cpu && T.phase === 'cpuAim' && T.target === tg) shoot(tg[0], tg[1], null); }, 1400);
+  }
+}
+
+// Zielwahl des Computers – nutzt nur öffentliche Informationen (Wasser / Treffer / versenkt)
+function cpuPick(){
+  const hu = G.P[0], recv = hu.recv, lvl = S.cpuLevel, lo = G.lo, hi = G.hi;
+  const inR = (x,y) => x>=lo && x<=hi && y>=lo && y<=hi;
+  const shipAt = (x,y) => hu.ships.find(s => s.pts.some(p => p[0]===x && p[1]===y));
+  const blocked = new Set();
+  const open = [];   // Treffer an noch nicht versenkten Schiffen
+  Object.keys(recv).forEach(k => {
+    if(recv[k] !== 'hit') return;
+    const [x,y] = k.split(',').map(Number), sh = shipAt(x,y);
+    if(!sh.sunk) open.push([x,y]);
+    else if(!S.touch && lvl !== 'easy') for(let dx=-1;dx<=1;dx++) for(let dy=-1;dy<=1;dy++) blocked.add(key(x+dx,y+dy));
+  });
+  if(!S.touch && lvl === 'hard') open.forEach(([x,y]) => [[1,1],[1,-1],[-1,1],[-1,-1]].forEach(([dx,dy]) => blocked.add(key(x+dx,y+dy))));
+  const free = (x,y) => inR(x,y) && !recv[key(x,y)] && !blocked.has(key(x,y));
+  const rnd = a => a[Math.floor(Math.random()*a.length)];
+  const openSet = new Set(open.map(p => key(p[0],p[1])));
+  const D4 = [[1,0],[-1,0],[0,1],[0,-1]];
+
+  if(lvl === 'hard'){
+    // Wahrscheinlichkeitskarte: Wie viele mögliche Lagen der restlichen Schiffe decken jeden Punkt ab?
+    const score = new Map();
+    const okPt = (x,y) => inR(x,y) && !blocked.has(key(x,y)) && (!recv[key(x,y)] || openSet.has(key(x,y)));
+    hu.ships.filter(sh => !sh.sunk).forEach(sh => {
+      const L = sh.len;
+      for(let x=lo; x<=hi; x++) for(let y=lo; y<=hi; y++) for(const h of (L === 1 ? [true] : [true,false])){
+        const pts = []; let ok = true, cover = 0;
+        for(let k=0; k<L; k++){ const px = h ? x+k : x, py = h ? y : y+k; if(!okPt(px,py)){ ok = false; break; } pts.push([px,py]); if(openSet.has(key(px,py))) cover++; }
+        if(!ok || (open.length && !cover)) continue;
+        const w = open.length ? Math.pow(20, cover) : 1;
+        pts.forEach(([px,py]) => { const q = key(px,py); if(!recv[q]) score.set(q, (score.get(q)||0) + w); });
+      }
+    });
+    let best = [], bs = 0;
+    score.forEach((v,q) => { if(v > bs){ bs = v; best = [q]; } else if(v === bs) best.push(q); });
+    if(best.length) return rnd(best).split(',').map(Number);
+  }
+
+  if(open.length && (lvl !== 'easy' || Math.random() < .5)){
+    let cand = [];
+    if(lvl !== 'easy'){
+      // zwei Treffer nebeneinander: die Linie verlängern
+      open.forEach(([x,y]) => D4.forEach(([dx,dy]) => {
+        if(!openSet.has(key(x+dx,y+dy))) return;
+        let ex = x, ey = y; while(openSet.has(key(ex+dx,ey+dy))){ ex+=dx; ey+=dy; }
+        let bx = x, by = y; while(openSet.has(key(bx-dx,by-dy))){ bx-=dx; by-=dy; }
+        if(free(ex+dx,ey+dy)) cand.push([ex+dx,ey+dy]);
+        if(free(bx-dx,by-dy)) cand.push([bx-dx,by-dy]);
+      }));
+    }
+    if(!cand.length) open.forEach(([x,y]) => D4.forEach(([dx,dy]) => { if(free(x+dx,y+dy)) cand.push([x+dx,y+dy]); }));
+    if(cand.length) return rnd(cand);
+  }
+  let all = [];
+  for(let x=lo; x<=hi; x++) for(let y=lo; y<=hi; y++) if(free(x,y)) all.push([x,y]);
+  if(!all.length) for(let x=lo; x<=hi; x++) for(let y=lo; y<=hi; y++) if(!recv[key(x,y)]) all.push([x,y]);
+  return rnd(all);
+}
+
+function cpuTap(x, y){
+  if(T.phase !== 'cpuAim' || !S.cpuLocate) return;
+  const [tx,ty] = T.target, hu = G.P[0];
+  if(T.tries === 0) hu.stats.loc++;
+  if(x === tx && y === ty){ T.msg = ''; T.ghost = null; shoot(tx, ty, null); return; }
+  if(T.tries === 0) hu.stats.locErr++;
+  T.tries++;
+  let m = `Du hast ${coord(x,y)} angetippt – gesucht ist ${coord(tx,ty)}.`;
+  if(x === ty && y === tx) m += ' Du hast <b>x und y vertauscht</b>.';
+  else if(x === tx) m += ' Der x-Wert stimmt schon.';
+  else if(y === ty) m += ' Der y-Wert stimmt schon.';
+  T.ghost = [x,y]; sfx('wrong');
+  if(T.tries >= 2){
+    shoot(tx, ty, m + ` So findest du ${coord(tx,ty)}: vom Ursprung ${Math.abs(tx)} nach ${tx<0?'links':'rechts'}, dann ${Math.abs(ty)} nach ${ty<0?'unten':'oben'}.`);
+    if(!S.guides){ T.guide = [tx,ty]; T.guideAnim = true; renderTurn(); }
+    return;
+  }
+  T.msg = m + ' Versuch es nochmal.';
+  renderTurn();
+}
+
+function renderCpuTurn(){
+  const hu = G.P[0], cp = G.P[1];
+  $('#pyStats').textContent = `Schüsse: ${cp.stats.shots} · Treffer: ${cp.stats.hits}`;
+  $('#pyCap').innerHTML = `<b>Deine Flotte</b>${T.phase === 'cpuAim' && S.cpuLocate ? ' – tippe den Punkt an' : ''}`;
+  $('#pyEnemy').innerHTML = hu.ships.slice().sort((a,b) => b.len-a.len).map(s => shipIcon(s.len, s.sunk ? 'sunk' : '')).join('');
+  renderBoard($('#pyBoard'), {lo:G.lo, hi:G.hi, ships:hu.ships, marks:hu.recv, hideFree:true,
+    guide:T.guide, guideAnim:T.guideAnim, ghost:T.ghost, last:T.last,
+    highlight:(T.phase === 'cpuAim' && !S.cpuLocate) ? [T.target] : []});
+  T.guideAnim = false;
+  $('#pyOwnCap').textContent = 'Meer des Computers';
+  $('#pyReport').innerHTML = `Deine bisherigen Schüsse: ${hu.stats.shots} · Treffer: ${hu.stats.hits}`;
+  renderBoard($('#pyOwn'), {lo:G.lo, hi:G.hi, mini:true, marks:cp.recv, shipsStyle:'sunk', ships:cp.ships.filter(s => s.sunk)});
+  const aim = T.phase !== 'result';
+  $('#aimBox').hidden = !aim; $('#resBox').hidden = aim;
+  if(!aim) return renderResult();
+  $('#pyTag').textContent = 'Der Computer ist dran';
+  const [tx,ty] = T.target;
+  $('#pyPrompt').innerHTML = `<div class="cpucall">Ich schieße auf<span>${coord(tx,ty)}</span></div>` +
+    (S.cpuLocate ? (T.phase === 'cpuAim' ? 'Wo landet der Schuss? Tippe den Punkt in <b>deinem Meer</b> an.' : '') : '');
+  $('#pyInputWrap').hidden = true; $('#pyFire').hidden = true;
+  $('#pyMsg').innerHTML = T.msg;
+}
+
+/* ---------- Sieg ---------- */
+function showWin(){
+  const w = G.cur;
+  setPlayerColor(w);
+  $('#wnTitle').textContent = !G.cpu ? `${G.P[w].name} hat gewonnen!` : (w === 0 ? `${G.P[0].name}, du hast gewonnen!` : 'Der Computer hat gewonnen!');
+  const tapUsed = S.mode !== 'type';
+  $('#wnStats').innerHTML = G.P.map((p,i) => {
+    const q = p.stats.shots ? Math.round(100*p.stats.hits/p.stats.shots) : 0;
+    return `<div class="wcard"><h3><span class="dot" style="background:var(--p${i})"></span>${esc(p.name)}${i===w ? ' 🏆' : ''}</h3>
+      <table><tr><td>Schüsse</td><td>${p.stats.shots}</td></tr><tr><td>Treffer</td><td>${p.stats.hits} (${q} %)</td></tr>
+      ${tapUsed && !(G.cpu && i === 1) ? `<tr><td>Punkte richtig abgelesen</td><td>${p.stats.reads - p.stats.err} von ${p.stats.reads}</td></tr>` : ''}
+      ${G.cpu && i === 0 && p.stats.loc ? `<tr><td>Computer-Schüsse sofort gefunden</td><td>${p.stats.loc - p.stats.locErr} von ${p.stats.loc}</td></tr>` : ''}</table>
+      <svg id="wnB${i}"></svg><div class="cap">Flotte von ${esc(p.name)} mit allen Schüssen des Gegners</div></div>`;
+  }).join('');
+  G.P.forEach((p,i) => renderBoard($('#wnB'+i), {lo:G.lo, hi:G.hi, mini:true, hideFree:true, ships:p.ships, marks:p.recv}));
+  show('scrWin');
+}
+
+/* ============ Start ============ */
+function initGame(){
+  initPlace();
+  onBoardTap($('#pyBoard'), targetTap);
+  $('#keypad').addEventListener('click', e => { const b = e.target.closest('button[data-k]'); if(b) keyPress(b.dataset.k); });
+  $$('.cf').forEach(b => b.addEventListener('click', () => { if(T && T.phase === 'aim'){ T.f = b.dataset.f; renderAim(); } }));
+  $('#pyFire').addEventListener('click', fire);
+  $$('[data-abort]').forEach(b => b.addEventListener('click', () => $('#mAbort').hidden = false));
+  $('#abortYes').addEventListener('click', () => { $('#mAbort').hidden = true; G = null; setPlayerColor(null); show('scrSettings'); renderSettings(); });
+  $('#wnAgain').addEventListener('click', () => { starter = 1 - starter; startGame(); });
+  $('#wnSet').addEventListener('click', () => { setPlayerColor(null); show('scrSettings'); renderSettings(); });
+  document.addEventListener('gesturestart', e => e.preventDefault());
+  document.addEventListener('dblclick', e => e.preventDefault());
+}
+
+initSettings();
+if(S.autoFleet) recommendFleet();
+initGame();
+renderSettings();
+show('scrSettings');
+window.__SV__ = {get S(){return S;}, get G(){return G;}, get PL(){return PL;}, get T(){return T;}, simulate, recommendFleet, cpuPick, placeIdx, shipPts};
+
+</script>
+</body>
+</html>
