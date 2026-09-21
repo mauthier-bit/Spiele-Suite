@@ -132,7 +132,9 @@ body{
 .badge.easy{color:var(--easy); border-color:var(--easy); background:color-mix(in srgb,var(--easy) 12%,transparent);}
 .badge.hard{color:var(--hard); border-color:var(--hard); background:color-mix(in srgb,var(--hard) 12%,transparent);}
 .area-label{color:var(--muted); font-weight:700; letter-spacing:.05em; text-transform:uppercase; font-size:clamp(.7rem,1.6vw,.9rem);}
-.problem{font-size:clamp(1.8rem,6vw,4rem); font-weight:900; letter-spacing:-.01em; line-height:1.1; font-variant-numeric:tabular-nums;}
+.problem{flex:1 1 auto; min-height:0; overflow:hidden; display:flex; align-items:center; justify-content:center; width:100%; font-size:clamp(1.8rem,6vw,4rem); font-weight:900; letter-spacing:-.01em; line-height:1.1; font-variant-numeric:tabular-nums;}
+.badge,.area-label,.timerwrap,.ansrow,.keypad,.status,.reveal-btn,#btnContinue{flex:0 0 auto;}
+.solution{flex:0 1 auto; max-height:38vh; overflow-y:auto;}
 /* math notation (Brüche, Wurzeln, Exponenten) — auch in der Lösung */
 .problem sup,.solution sup{font-size:.52em; vertical-align:.78em; font-weight:800; margin-left:.04em; line-height:0;}
 .problem sub,.solution sub{font-size:.5em; vertical-align:-.62em; font-weight:800; line-height:0;}
@@ -146,6 +148,8 @@ body{
 .num{padding:0 .04em;}
 .timerwrap{display:flex; align-items:center; gap:12px; width:min(440px,80%);}
 .timerwrap.hidden,.keypad.hidden,.ansrow.hidden,.solution.hidden,.reveal-btn.hidden{display:none !important;}
+.qcard .cta.hidden{display:none !important;}
+#btnContinue{margin-top:2px;}
 .timebar{flex:1 1 auto; height:12px; border-radius:999px; background:rgba(255,255,255,.1); overflow:hidden;}
 .timebar i{display:block; height:100%; width:100%; background:var(--easy); border-radius:999px;}
 .timenum{font-weight:900; font-size:clamp(1rem,2.4vw,1.5rem); font-variant-numeric:tabular-nums; min-width:1.4em;}
@@ -312,6 +316,7 @@ body{
 
         <div class="status neutral" id="status"></div>
         <div class="solution hidden" id="solution"></div>
+        <button class="cta hidden" id="btnContinue">Weiter →</button>
         <button class="reveal-btn hidden" id="revealInline">Lösung anzeigen &amp; Runde beenden</button>
       </div>
     </div>
@@ -870,7 +875,7 @@ function makeProblem(areas, difficulties, grade) {
   var timerwrap = $("timerwrap"), timebar = $("timebar"), timenum = $("timenum");
   var ansrow = $("ansrow"), ansph = $("ansph");
   var keypad = $("keypad"), statusEl = $("status");
-  var solutionEl = $("solution"), revealInline = $("revealInline");
+  var solutionEl = $("solution"), revealInline = $("revealInline"), btnContinue = $("btnContinue");
   var btnReset = $("btnReset"), btnSolution = $("btnSolution"), btnSettings = $("btnSettings");
   // Settings
   var ov = $("settingsOverlay"), selGrade = $("selGrade"), areaChecks = $("areaChecks");
@@ -1084,6 +1089,7 @@ function makeProblem(areas, difficulties, grade) {
     phase = "ready";
 
     // Frage-Karte vorbereiten
+    show(problemEl); show(areaLabel);
     problemEl.innerHTML = '<span class="fit">' + p.html + '</span>';
     areaLabel.textContent = AREA_LABEL[p.area] || "";
     var hard = p.difficulty === "hard";
@@ -1092,6 +1098,7 @@ function makeProblem(areas, difficulties, grade) {
     badgeText.textContent = hard ? "Schwer" : "Leicht";
     qcard.style.removeProperty("--ac");
     hide(timerwrap); hide(ansrow); hide(keypad); hide(solutionEl); show(revealInline);
+    hide(btnContinue);
     ansrow.innerHTML = '<span class="ph">Antwort eingeben …</span>';
     show(qcard);
     fitProblem();
@@ -1103,12 +1110,14 @@ function makeProblem(areas, difficulties, grade) {
       beginAnswerUI(chooser);
       sound("buzz"); startTimer();
     } else {
-      // Buzzern / Puck: beide Teams buzzern
+      // Buzzern / Puck: beide Teams buzzern — die Antwortzeit läuft bereits jetzt
       phase = "ready";
       setBuzzable(true);
       setStatus(settings.mode === "puck"
         ? (teamName(puck) + " hat den Puck — beide buzzern!")
         : "Beide Teams buzzern — wer weiß es?", "neutral");
+      show(timerwrap);
+      startTimer();
     }
     renderBoard(null);
     setTurnbar();
@@ -1131,8 +1140,10 @@ function makeProblem(areas, difficulties, grade) {
     other.classList.remove("active", "turn"); other.classList.add("dim");
     qcard.style.setProperty("--ac", COL[team]);
     show(timerwrap); show(ansrow); show(keypad); hide(solutionEl); show(revealInline);
+    hide(btnContinue);
     buildKeypad(); renderAnswer();
     setStatus(teamName(team) + " ist dran …", "neutral");
+    fitProblem();
   }
 
   /* ---------- Timer ---------- */
@@ -1152,8 +1163,26 @@ function makeProblem(areas, difficulties, grade) {
   function stopTimer() { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
   function now() { return (window.performance && performance.now) ? performance.now() : Date.now(); }
   function onTimeout() {
+    if (phase === "ready") { noBuzzTimeout(); return; }
     if (phase !== "answering") return;
     resolveWrong(teamName(active) + ": Zeit abgelaufen.");
+  }
+  // Niemand hat innerhalb der Antwortzeit gebuzzert
+  function noBuzzTimeout() {
+    stopTimer();
+    sound("wrong");
+    phase = "resolved";
+    chooser = nextChooserOnFail();
+    setStatus("Zeit abgelaufen — niemand hat gebuzzert. Das Feld bleibt frei.", "bad");
+    revealSolution(true);
+    render();
+    armContinue();
+  }
+  // Nächster Wähler, wenn niemand richtig lag
+  function nextChooserOnFail() {
+    if (settings.mode === "alt") return other(chooser);   // reihum
+    if (settings.mode === "puck") return puck;             // Puck-Besitzer wählt weiter
+    return Math.random() < 0.5 ? "A" : "B";                // Buzzern: Zufall
   }
 
   /* ---------- Tastenfeld ---------- */
@@ -1266,7 +1295,7 @@ function makeProblem(areas, difficulties, grade) {
     } else {
       // beide gescheitert -> Feld bleibt frei
       phase = "resolved";
-      chooser = (settings.mode === "puck") ? puck : other(chooser);
+      chooser = nextChooserOnFail();
       setStatus("Schade — niemand richtig. Das Feld bleibt frei.", "bad");
       revealSolution(true);
       render();
@@ -1298,6 +1327,7 @@ function makeProblem(areas, difficulties, grade) {
       '<div style="font-size:1.15em">Lösung: <b>' + problem.html + " = " + niceAnswer(problem) + "</b></div>" +
       '<div style="margin-top:6px">Rechenweg: ' + escapeHTML(problem.hint) + "</div>";
     show(solutionEl); hide(revealInline); hide(timerwrap); hide(keypad);
+    hide(problemEl); hide(areaLabel);
     if (emphasize) hide(ansrow);
     setBuzzable(false);
     teamA.classList.remove("active", "dim"); teamB.classList.remove("active", "dim");
@@ -1308,7 +1338,7 @@ function makeProblem(areas, difficulties, grade) {
     if (phase !== "ready" && phase !== "answering") return;
     stopTimer();
     phase = "resolved";
-    chooser = (settings.mode === "puck") ? puck : other(chooser);
+    chooser = nextChooserOnFail();
     setStatus("Aufgelöst durch Spielleitung. Feld bleibt frei.", "neutral");
     revealSolution(true);
     render();
@@ -1318,12 +1348,12 @@ function makeProblem(areas, difficulties, grade) {
   /* ---------- Weiter zum Brett ---------- */
   function armContinue() {
     awaitingContinue = true;
-    var s = solutionEl.innerHTML;
-    solutionEl.innerHTML = s + '<div style="margin-top:10px; color:var(--ink); font-weight:800">Tippe hier, um weiterzuspielen →</div>';
+    show(btnContinue);
     setTurnbar();
   }
   function continueToBoard() {
     awaitingContinue = false;
+    hide(btnContinue);
     pending = null; problem = null; active = null; buf = "";
     phase = "choose";
     hide(qcard);
@@ -1349,12 +1379,16 @@ function makeProblem(areas, difficulties, grade) {
   function fitProblem() {
     var fit = problemEl.querySelector(".fit");
     if (!fit) return;
+    if (problemEl.classList.contains("hidden")) return;
     fit.style.transform = "none";
     var run = function () {
       fit.style.transform = "none";
-      var avail = problemEl.clientWidth;
-      var w = fit.getBoundingClientRect().width;
-      if (avail > 0 && w > avail) fit.style.transform = "scale(" + (avail / w * 0.98).toFixed(4) + ")";
+      var availW = problemEl.clientWidth, availH = problemEl.clientHeight;
+      var r = fit.getBoundingClientRect();
+      var sw = (availW > 0 && r.width > 0) ? availW / r.width : 1;
+      var sh = (availH > 0 && r.height > 0) ? availH / r.height : 1;
+      var s = Math.min(sw, sh) * 0.97;
+      if (s < 1) fit.style.transform = "scale(" + s.toFixed(4) + ")";
     };
     if (window.requestAnimationFrame) requestAnimationFrame(run); else run();
   }
@@ -1534,12 +1568,13 @@ function makeProblem(areas, difficulties, grade) {
     });
   });
 
-  // Weiter (Tippen auf Frage-Karte nach Auflösung)
+  // Weiter: Tippen auf die Karte (nicht auf Buttons) oder auf den Weiter-Button
   qcard.addEventListener("click", function (e) {
     if (!awaitingContinue) return;
-    if (e.target.closest("#revealInline")) return;
+    if (e.target.closest("button")) return; // Tastenfeld/Weiter/Lösung nicht als Weiter-Tipp werten
     continueToBoard();
   });
+  btnContinue.addEventListener("click", function (e) { e.stopPropagation(); continueToBoard(); });
 
   // Steuerung
   btnReset.addEventListener("click", function () {

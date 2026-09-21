@@ -107,10 +107,12 @@ body{
 .area-label{color:var(--muted); font-weight:700; font-size:.82rem; letter-spacing:.05em; text-transform:uppercase; min-height:1em;}
 
 .problem{
-  flex:0 0 auto; display:flex; align-items:center; justify-content:center; text-align:center;
+  flex:1 1 auto; display:flex; align-items:center; justify-content:center; text-align:center;
   font-size:clamp(2.2rem,6.5vw,5rem); font-weight:800; line-height:1.15;
-  padding:clamp(8px,2vw,22px) 6px; min-height:clamp(80px,16vh,150px); width:100%;
+  padding:clamp(4px,1vw,12px) 6px; min-height:0; width:100%; overflow:hidden;
 }
+.badge,.area-label,.timerwrap,.ansrow,.keypad,.status,.reveal-btn{flex:0 0 auto;}
+.solution{flex:0 1 auto; max-height:34vh; overflow-y:auto;}
 .problem.placeholder{color:var(--muted); font-size:clamp(1.1rem,2.6vw,1.7rem); font-weight:600;}
 
 /* math notation (Brüche, Wurzeln, Exponenten) — im Aufgabenfeld UND in der Lösung */
@@ -935,6 +937,7 @@ function makeProblem(areas, difficulties, grade) {
 
     // Stage zurücksetzen
     problemEl.classList.remove("placeholder");
+    show(problemEl); show(areaLabel);
     problemEl.innerHTML = '<span class="fit">' + p.html + '</span>';
     fitProblem();
     areaLabel.textContent = AREA_LABEL[p.area] || "";
@@ -1000,6 +1003,7 @@ function makeProblem(areas, difficulties, grade) {
     renderAnswer();
     var nm = team === "A" ? settings.teamA : settings.teamB;
     setStatus(nm + " ist dran …", "neutral");
+    fitProblem();
   }
 
   /* ============================================================
@@ -1209,6 +1213,7 @@ function makeProblem(areas, difficulties, grade) {
       '<div style="font-size:1.15em">Lösung: <b>' + problem.html + " = " + ans + "</b></div>" +
       '<div style="margin-top:6px">Rechenweg: ' + escapeHTML(problem.hint) + "</div>";
     show(solutionEl);
+    hide(problemEl); hide(areaLabel);
     hide(revealInline);
     hide(timerwrap); hide(keypad);
     if (emphasize) hide(ansrow);
@@ -1293,16 +1298,20 @@ function makeProblem(areas, difficulties, grade) {
     turnflagB.classList.toggle("hidden", !(altPre && turn === "B"));
   }
 
-  /* ---------- Aufgabe immer einzeilig einpassen ---------- */
+  /* ---------- Aufgabe in Breite UND Höhe einpassen ---------- */
   function fitProblem() {
     var fit = problemEl.querySelector(".fit");
     if (!fit) return;
+    if (problemEl.classList.contains("hidden")) return;
     fit.style.transform = "none";
     var run = function () {
       fit.style.transform = "none";
-      var avail = problemEl.clientWidth;
-      var w = fit.getBoundingClientRect().width;
-      if (avail > 0 && w > avail) fit.style.transform = "scale(" + (avail / w * 0.98).toFixed(4) + ")";
+      var availW = problemEl.clientWidth, availH = problemEl.clientHeight;
+      var r = fit.getBoundingClientRect();
+      var sw = (availW > 0 && r.width > 0) ? availW / r.width : 1;
+      var sh = (availH > 0 && r.height > 0) ? availH / r.height : 1;
+      var s = Math.min(sw, sh) * 0.97;
+      if (s < 1) fit.style.transform = "scale(" + s.toFixed(4) + ")";
     };
     if (window.requestAnimationFrame) requestAnimationFrame(run); else run();
   }
@@ -1356,6 +1365,7 @@ function makeProblem(areas, difficulties, grade) {
     turn = st; puck = st;
     stopTimer();
     hide(winOverlay); clearConfetti();
+    show(problemEl); show(areaLabel);
     problemEl.classList.add("placeholder");
     problemEl.textContent = "Tippe auf »Neue Aufgabe«, um zu starten.";
     areaLabel.textContent = "";
