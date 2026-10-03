@@ -1153,5 +1153,384 @@
 })();
 
 </script>
+<!-- ===================== Teilen / QR-Code (gemeinsamer Baustein) ===================== -->
+<style>
+  .sq-fab{position:fixed; left:calc(10px + env(safe-area-inset-left)); bottom:calc(10px + env(safe-area-inset-bottom));
+    z-index:120; display:none; align-items:center; gap:7px; padding:10px 14px; border-radius:999px; border:none;
+    background:rgba(20,20,26,.82); color:#fff; font:inherit; font-size:14.5px; font-weight:700; cursor:pointer;
+    box-shadow:0 4px 14px rgba(0,0,0,.3); -webkit-tap-highlight-color:transparent;}
+  .sq-fab.on{display:inline-flex;}
+  .sq-fab:active{transform:scale(.96);}
+  .sq-fab svg{width:17px; height:17px; display:block;}
+  .sq-inline{display:inline-flex; align-items:center; gap:6px;}
+  .sq-ov{position:fixed; inset:0; z-index:9000; display:none; align-items:center; justify-content:center;
+    background:rgba(12,14,18,.86); padding:16px; -webkit-backdrop-filter:blur(4px); backdrop-filter:blur(4px);}
+  .sq-ov.on{display:flex;}
+  .sq-card{background:#fff; color:#1b1f24; border-radius:22px; padding:22px 22px 18px; width:100%; max-width:520px;
+    max-height:94vh; overflow:auto; text-align:center; box-shadow:0 24px 60px rgba(0,0,0,.45);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  .sq-card h2{margin:0 0 2px; font-size:1.4rem; font-weight:800;}
+  .sq-card p.sq-sub{margin:0 0 14px; color:#5b6470; font-size:.95rem;}
+  .sq-code{display:flex; align-items:center; justify-content:center; margin:0 auto 12px;
+    width:min(74vw,330px); height:min(74vw,330px); background:#fff; border:1px solid #e4e6ea; border-radius:14px; padding:10px;}
+  .sq-code svg{width:100%; height:100%; display:block; image-rendering:pixelated;}
+  .sq-url{font-size:.86rem; color:#5b6470; word-break:break-all; background:#f3f4f6; border-radius:10px;
+    padding:9px 11px; margin-bottom:14px; line-height:1.4;
+    -webkit-user-select:text; user-select:text;}
+  .sq-row{display:flex; gap:9px; flex-wrap:wrap;}
+  .sq-row button{flex:1 1 130px; border:none; border-radius:12px; padding:13px 14px; font:inherit; font-size:1rem;
+    font-weight:750; cursor:pointer; background:#1b1f24; color:#fff; min-height:48px;}
+  .sq-row button.sq-alt{background:#fff; color:#1b1f24; box-shadow:inset 0 0 0 2px #dfe2e7;}
+  .sq-row button:active{transform:scale(.985);}
+  .sq-note{margin-top:11px; font-size:.8rem; color:#8a929c; line-height:1.45;}
+</style>
+<script>
+/* QR-Code (Modell 2, Byte-Modus, Fehlerkorrektur M) – erzeugt ohne Internet und ohne Bibliothek. */
+(function(){
+  "use strict";
+  if(window.ShareQR) return;
+
+  var ANCHOR = "#start";          // Startbildschirm: Knopf nur sichtbar, solange der zu sehen ist
+  var INLINE = "_";          // optional: Leiste, in die der Knopf direkt eingebaut wird
+  var BASE_KEY = "spieleSuite.basis";
+  var BASE_STD = "https://mauthier-bit.github.io/Spiele-Suite/";
+
+  /* ---------------- Galois-Feld GF(256) ---------------- */
+  var EXP=new Array(512), LOG=new Array(256);
+  (function(){ var x=1;
+    for(var i=0;i<255;i++){ EXP[i]=x; LOG[x]=i; x=(x<<1); if(x&0x100) x^=0x11D; }
+    for(var j=255;j<512;j++) EXP[j]=EXP[j-255];
+  })();
+  function gmul(a,b){ return (a===0||b===0) ? 0 : EXP[LOG[a]+LOG[b]]; }
+
+  /* ---------------- Reed-Solomon ---------------- */
+  function rsDivisor(deg){
+    var r=new Array(deg); for(var i=0;i<deg;i++) r[i]=0;
+    r[deg-1]=1;
+    var root=1;
+    for(i=0;i<deg;i++){
+      for(var j=0;j<deg;j++){
+        r[j]=gmul(r[j],root);
+        if(j+1<deg) r[j]^=r[j+1];
+      }
+      root=gmul(root,2);
+    }
+    return r;
+  }
+  function rsRemainder(data,div){
+    var res=new Array(div.length); for(var i=0;i<div.length;i++) res[i]=0;
+    for(var d=0; d<data.length; d++){
+      var factor=(data[d]^res[0])&0xFF;
+      res.shift(); res.push(0);
+      for(var j=0;j<res.length;j++) res[j]^=gmul(div[j],factor);
+    }
+    return res;
+  }
+
+  /* ---------------- Tabellen (Fehlerkorrektur M, Version 1–15) ----------------
+     [EC-Wörter je Block, Blöcke Gruppe 1, Datenwörter Gruppe 1, Blöcke Gruppe 2, Datenwörter Gruppe 2] */
+  var TAB={
+    1:[10,1,16,0,0],   2:[16,1,28,0,0],   3:[26,1,44,0,0],   4:[18,2,32,0,0],   5:[24,2,43,0,0],
+    6:[16,4,27,0,0],   7:[18,4,31,0,0],   8:[22,2,38,2,39],  9:[22,3,36,2,37], 10:[26,4,43,1,44],
+    11:[30,1,50,4,51],12:[22,6,36,2,37], 13:[22,8,37,1,38], 14:[24,4,40,5,41], 15:[24,5,41,5,42]
+  };
+  var ALIGN={1:[],2:[6,18],3:[6,22],4:[6,26],5:[6,30],6:[6,34],7:[6,22,38],8:[6,24,42],9:[6,26,46],
+    10:[6,28,50],11:[6,30,54],12:[6,32,58],13:[6,34,62],14:[6,26,46,66],15:[6,26,48,70]};
+  function datenWoerter(v){ var t=TAB[v]; return t[1]*t[2]+t[3]*t[4]; }
+
+  /* ---------------- Bitfolge aufbauen ---------------- */
+  function utf8(str){
+    var out=[];
+    for(var i=0;i<str.length;i++){
+      var c=str.charCodeAt(i);
+      if(c<0x80) out.push(c);
+      else if(c<0x800){ out.push(0xC0|(c>>6), 0x80|(c&63)); }
+      else if(c<0xD800||c>=0xE000){ out.push(0xE0|(c>>12), 0x80|((c>>6)&63), 0x80|(c&63)); }
+      else { i++; var cp=0x10000+(((c&0x3FF)<<10)|(str.charCodeAt(i)&0x3FF));
+        out.push(0xF0|(cp>>18), 0x80|((cp>>12)&63), 0x80|((cp>>6)&63), 0x80|(cp&63)); }
+    }
+    return out;
+  }
+  function bauWoerter(bytes){
+    var v=1;
+    while(v<=15){
+      var kap=datenWoerter(v)*8;
+      var lenBits=(v<10)?8:16;
+      if(4+lenBits+bytes.length*8<=kap) break;
+      v++;
+    }
+    if(v>15) return null;
+    var bits=[];
+    function push(val,n){ for(var i=n-1;i>=0;i--) bits.push((val>>i)&1); }
+    push(4,4);
+    push(bytes.length,(v<10)?8:16);
+    for(var i=0;i<bytes.length;i++) push(bytes[i],8);
+    var kap=datenWoerter(v)*8;
+    for(i=0;i<4 && bits.length<kap;i++) bits.push(0);
+    while(bits.length%8!==0) bits.push(0);
+    var fill=[0xEC,0x11], k=0;
+    while(bits.length<kap){ push(fill[k%2],8); k++; }
+    var woerter=[];
+    for(i=0;i<bits.length;i+=8){
+      var b=0; for(var j=0;j<8;j++) b=(b<<1)|bits[i+j];
+      woerter.push(b);
+    }
+    return {version:v, woerter:woerter};
+  }
+  /* Blöcke bilden, Fehlerkorrektur anhängen, verschachteln */
+  function blockweise(v,woerter){
+    var t=TAB[v], ecLen=t[0], bl=[], pos=0, i, j;
+    for(i=0;i<t[1];i++){ bl.push(woerter.slice(pos,pos+t[2])); pos+=t[2]; }
+    for(i=0;i<t[3];i++){ bl.push(woerter.slice(pos,pos+t[4])); pos+=t[4]; }
+    var div=rsDivisor(ecLen);
+    var ec=bl.map(function(b){ return rsRemainder(b,div); });
+    var maxLen=Math.max.apply(null,bl.map(function(b){return b.length;}));
+    var out=[];
+    for(i=0;i<maxLen;i++) for(j=0;j<bl.length;j++) if(i<bl[j].length) out.push(bl[j][i]);
+    for(i=0;i<ecLen;i++) for(j=0;j<ec.length;j++) out.push(ec[j][i]);
+    return out;
+  }
+
+  /* ---------------- Matrix ---------------- */
+  function leer(n,val){ var m=[]; for(var i=0;i<n;i++){ var r=[]; for(var j=0;j<n;j++) r.push(val); m.push(r); } return m; }
+  function bauMatrix(v,woerter){
+    var n=17+4*v;
+    var mod=leer(n,false), fun=leer(n,false);
+    function setz(x,y,dark){ if(x<0||y<0||x>=n||y>=n) return; mod[y][x]=dark; fun[y][x]=true; }
+    function finder(cx,cy){
+      for(var dy=-4;dy<=4;dy++) for(var dx=-4;dx<=4;dx++){
+        var d=Math.max(Math.abs(dx),Math.abs(dy));
+        setz(cx+dx,cy+dy,(d!==2 && d!==4));
+      }
+    }
+    finder(3,3); finder(n-4,3); finder(3,n-4);
+    for(var i=0;i<n;i++){ if(!fun[6][i]) setz(i,6,i%2===0); if(!fun[i][6]) setz(6,i,i%2===0); }
+    var ap=ALIGN[v];
+    for(var a=0;a<ap.length;a++) for(var b=0;b<ap.length;b++){
+      if((a===0&&b===0)||(a===0&&b===ap.length-1)||(a===ap.length-1&&b===0)) continue;
+      for(var dy=-2;dy<=2;dy++) for(var dx=-2;dx<=2;dx++)
+        setz(ap[a]+dx,ap[b]+dy,Math.max(Math.abs(dx),Math.abs(dy))!==1);
+    }
+    /* Formatbereiche reservieren */
+    for(i=0;i<=8;i++){ if(!fun[8][i]) setz(i,8,false); if(!fun[i][8]) setz(8,i,false); }
+    for(i=0;i<8;i++){ setz(n-1-i,8,false); setz(8,n-1-i,false); }
+    setz(8,n-8,true);                                   // dunkles Modul
+    /* Versionsinformation ab Version 7 */
+    if(v>=7){
+      var rest=v;
+      for(i=0;i<12;i++) rest=(rest<<1)^((rest>>>11)*0x1F25);
+      var vbits=(v<<12)|rest;
+      for(i=0;i<18;i++){
+        var bit=((vbits>>>i)&1)===1, x=Math.floor(i/3), y=n-11+(i%3);
+        setz(x,y,bit); setz(y,x,bit);
+      }
+    }
+    /* Datenbits im Zickzack */
+    var bitIdx=0;
+    function naechstes(){
+      if(bitIdx>=woerter.length*8) return false;
+      var b=((woerter[bitIdx>>>3]>>>(7-(bitIdx&7)))&1)===1;
+      bitIdx++; return b;
+    }
+    for(var right=n-1; right>=1; right-=2){
+      if(right===6) right=5;
+      for(var vert=0; vert<n; vert++){
+        for(var k=0;k<2;k++){
+          var x=right-k;
+          var aufwaerts=((right+1)&2)===0;
+          var y=aufwaerts ? n-1-vert : vert;
+          if(!fun[y][x] && bitIdx<woerter.length*8) mod[y][x]=naechstes();
+        }
+      }
+    }
+    return {n:n, mod:mod, fun:fun};
+  }
+  function maske(id,x,y){
+    switch(id){
+      case 0: return (x+y)%2===0;
+      case 1: return y%2===0;
+      case 2: return x%3===0;
+      case 3: return (x+y)%3===0;
+      case 4: return (Math.floor(y/2)+Math.floor(x/3))%2===0;
+      case 5: return (x*y)%2+(x*y)%3===0;
+      case 6: return ((x*y)%2+(x*y)%3)%2===0;
+      case 7: return ((x+y)%2+(x*y)%3)%2===0;
+    }
+    return false;
+  }
+  function formatBits(ecc,mask){            // ecc: M = 0b00
+    var data=(ecc<<3)|mask, rest=data;
+    for(var i=0;i<10;i++) rest=(rest<<1)^((rest>>>9)*0x537);
+    return ((data<<10)|rest)^0x5412;
+  }
+  function zeichneFormat(M,mask){
+    var bits=formatBits(0,mask), n=M.n;
+    for(var i=0;i<=5;i++) M.mod[8][i]=((bits>>>i)&1)===1;
+    M.mod[8][7]=((bits>>>6)&1)===1;
+    M.mod[8][8]=((bits>>>7)&1)===1;
+    M.mod[7][8]=((bits>>>8)&1)===1;
+    for(i=9;i<15;i++) M.mod[14-i][8]=((bits>>>i)&1)===1;
+    for(i=0;i<8;i++) M.mod[n-1-i][8]=((bits>>>i)&1)===1;
+    for(i=8;i<15;i++) M.mod[8][n-15+i]=((bits>>>i)&1)===1;
+    M.mod[n-8][8]=true;
+  }
+  function strafe(M){
+    var n=M.n, s=0, i, j, k;
+    for(i=0;i<n;i++){
+      for(var dir=0;dir<2;dir++){
+        var lauf=1, prev=dir?M.mod[0][i]:M.mod[i][0];
+        for(j=1;j<n;j++){
+          var c=dir?M.mod[j][i]:M.mod[i][j];
+          if(c===prev){ lauf++; if(lauf===5) s+=3; else if(lauf>5) s++; }
+          else { lauf=1; prev=c; }
+        }
+      }
+    }
+    for(i=0;i<n-1;i++) for(j=0;j<n-1;j++){
+      var c0=M.mod[i][j];
+      if(c0===M.mod[i][j+1] && c0===M.mod[i+1][j] && c0===M.mod[i+1][j+1]) s+=3;
+    }
+    var muster=[true,false,true,true,true,false,true];
+    function passt(get,start){
+      for(k=0;k<7;k++) if(get(start+k)!==muster[k]) return false;
+      return true;
+    }
+    for(i=0;i<n;i++){
+      for(j=0;j<=n-7;j++){
+        var zeile=function(p){ return p>=0&&p<n ? M.mod[i][p] : false; };
+        var spalte=function(p){ return p>=0&&p<n ? M.mod[p][i] : false; };
+        [zeile,spalte].forEach(function(get){
+          if(!passt(get,j)) return;
+          var vorne=true, hinten=true;
+          for(k=1;k<=4;k++){ if(get(j-k)) vorne=false; if(get(j+6+k)) hinten=false; }
+          if(vorne||hinten) s+=40;
+        });
+      }
+    }
+    var dunkel=0;
+    for(i=0;i<n;i++) for(j=0;j<n;j++) if(M.mod[i][j]) dunkel++;
+    s+=Math.floor(Math.abs(dunkel*20-n*n*10)/(n*n))*10;
+    return s;
+  }
+  function qrcode(text){
+    var bytes=utf8(text), d=bauWoerter(bytes);
+    if(!d) return null;
+    var alle=blockweise(d.version,d.woerter);
+    var best=null;
+    for(var m=0;m<8;m++){
+      var M=bauMatrix(d.version,alle);
+      for(var y=0;y<M.n;y++) for(var x=0;x<M.n;x++)
+        if(!M.fun[y][x] && maske(m,x,y)) M.mod[y][x]=!M.mod[y][x];
+      zeichneFormat(M,m);
+      var s=strafe(M);
+      if(!best||s<best.s) best={M:M,s:s,m:m};
+    }
+    return {size:best.M.n, mod:best.M.mod, version:d.version, maske:best.m};
+  }
+  function qrSVG(text){
+    var q=qrcode(text);
+    if(!q) return '<div style="padding:20px;color:#8a929c;">Adresse zu lang für einen QR-Code.</div>';
+    var rand=2, n=q.size, g=n+2*rand, d="";
+    for(var y=0;y<n;y++) for(var x=0;x<n;x++)
+      if(q.mod[y][x]) d+="M"+(x+rand)+" "+(y+rand)+"h1v1h-1z";
+    return '<svg viewBox="0 0 '+g+' '+g+'" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">'+
+      '<rect width="'+g+'" height="'+g+'" fill="#fff"/><path d="'+d+'" fill="#000"/></svg>';
+  }
+
+  /* ---------------- Adresse bestimmen ---------------- */
+  function basis(){
+    var b=null;
+    try{ b=localStorage.getItem(BASE_KEY); }catch(e){}
+    b=b||BASE_STD;
+    return b.charAt(b.length-1)==="/" ? b : b+"/";
+  }
+  function dateiname(){
+    var p=location.pathname||"";
+    var name=p.substring(p.lastIndexOf("/")+1);
+    try{ name=decodeURIComponent(name); }catch(e){}
+    return /^[\w.%+ -]{1,80}\.html?$/i.test(name) ? name : "index.html";
+  }
+  function adresse(){
+    if(location.protocol==="http:"||location.protocol==="https:") return location.href.split("#")[0];
+    return basis()+encodeURIComponent(dateiname());
+  }
+
+  /* ---------------- Oberfläche ---------------- */
+  var ov=null;
+  function baueOverlay(){
+    ov=document.createElement("div");
+    ov.className="sq-ov";
+    ov.innerHTML='<div class="sq-card">'+
+      '<h2 id="sqTitle">Teilen</h2><p class="sq-sub">Mit der Kamera scannen – das Spiel öffnet sich direkt im Browser.</p>'+
+      '<div class="sq-code" id="sqCode"></div>'+
+      '<div class="sq-url" id="sqUrl"></div>'+
+      '<div class="sq-row">'+
+        '<button class="sq-close">Schließen</button>'+
+        '<button class="sq-alt sq-edit">Adresse ändern</button>'+
+      '</div>'+
+      '<div class="sq-note" id="sqNote"></div>'+
+      '</div>';
+    document.body.appendChild(ov);
+    ov.addEventListener("click",function(e){ if(e.target===ov) zu(); });
+    ov.querySelector(".sq-close").addEventListener("click",zu);
+    ov.querySelector(".sq-edit").addEventListener("click",function(){
+      var neu=prompt("Internetadresse des Ordners, in dem die Spiele liegen:", basis());
+      if(neu===null) return;
+      neu=neu.trim();
+      try{ if(neu) localStorage.setItem(BASE_KEY,neu); else localStorage.removeItem(BASE_KEY); }catch(e){}
+      fuelle();
+    });
+  }
+  function fuelle(){
+    var url=adresse();
+    var t=(document.title||"").split(/[\u2013\u2014|\u00b7]/)[0].trim();
+    ov.querySelector("#sqTitle").textContent=(t||"Diese Seite")+" teilen";
+    ov.querySelector("#sqCode").innerHTML=qrSVG(url);
+    ov.querySelector("#sqUrl").textContent=url;
+    ov.querySelector("#sqNote").innerHTML = (location.protocol==="http:"||location.protocol==="https:")
+      ? "Das ist die Adresse dieser Seite."
+      : "Die Datei liegt lokal auf diesem Gerät. Der Code zeigt deshalb auf die veröffentlichte Fassung – über „Adresse ändern“ anpassbar.";
+  }
+  function auf(){ if(!ov) baueOverlay(); fuelle(); ov.classList.add("on"); }
+  function zu(){ if(ov) ov.classList.remove("on"); }
+
+  var ICON='<svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 3h8v8H3V3zm2 2v4h4V5H5zm8-2h8v8h-8V3zm2 2v4h4V5h-4zM3 13h8v8H3v-8zm2 2v4h4v-4H5zm8-2h3v3h-3v-3zm5 0h3v3h-3v-3zm-5 5h3v3h-3v-3zm5 0h3v3h-3v-3z"/></svg>';
+  function knopf(){
+    var inline=INLINE && INLINE.charAt(0)!=="_" ? document.querySelector(INLINE) : null;
+    if(inline){
+      var b=document.createElement("button");
+      b.className=(inline.querySelector("button")? inline.querySelector("button").className : "")+" sq-inline";
+      b.type="button"; b.innerHTML=ICON+"<span>Teilen</span>";
+      b.addEventListener("click",auf);
+      inline.appendChild(b);
+      return;
+    }
+    var f=document.createElement("button");
+    f.className="sq-fab"; f.type="button";
+    f.innerHTML=ICON+"<span>Teilen</span>";
+    f.addEventListener("click",auf);
+    document.body.appendChild(f);
+    var sel = ANCHOR && ANCHOR.charAt(0)!=="_" ? ANCHOR : null;
+    function sichtbar(){
+      if(!sel) return true;
+      var els=document.querySelectorAll(sel);
+      for(var i=0;i<els.length;i++){
+        var cs=getComputedStyle(els[i]);
+        if(cs.display!=="none" && cs.visibility!=="hidden" && els[i].getClientRects().length) return true;
+      }
+      return false;
+    }
+    function pruefe(){ f.classList.toggle("on", sichtbar() && !(ov&&ov.classList.contains("on"))); }
+    pruefe();
+    setInterval(pruefe,400);
+  }
+  function start(){ knopf(); }
+  if(document.readyState==="loading") document.addEventListener("DOMContentLoaded",start);
+  else start();
+
+  window.ShareQR={open:auf, close:zu, url:adresse, qr:qrcode, svg:qrSVG, basis:basis};
+})();
+</script>
+
 </body>
 </html>

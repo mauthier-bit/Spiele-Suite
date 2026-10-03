@@ -1,6 +1,6 @@
 # Spiele-Suite – Mathematik & Physik
 
-Zehn Unterrichtsspiele für das iPad, zusammengefasst auf einer Startseite.
+Elf Unterrichtsspiele für das iPad, zusammengefasst auf einer Startseite.
 Alle Spiele sind **einzelne HTML-Dateien ohne externe Abhängigkeiten**: kein Server,
 keine Anmeldung, keine Internetverbindung nötig. Einmal geladen, laufen sie offline.
 
@@ -10,6 +10,7 @@ keine Anmeldung, keine Internetverbindung nötig. Einmal geladen, laufen sie off
 
 | Spiel | Jahrgang | Thema | Spielform |
 |---|---|---|---|
+| [Memory](memory.html) | 5 – 13 | 73 Kartensätze: Darstellungen verknüpfen | Paare aufdecken, 1 – 4 Spieler |
 | [Bruno](Bruno.html) | 6 (ab 7 zur Wiederholung) | Brüche und ihre Darstellungen | Kartenspiel, zu zweit oder gegen den Computer |
 | [D-Uno](D-Uno.html) | 5 – 7 | Distributivgesetz, Aus­klammern und Aus­multiplizieren | Kartenspiel, zu zweit oder gegen den Computer |
 | [Termino](Termino.html) | 7 – 10 | gleichwertige Terme | Domino, gegeneinander oder kooperativ |
@@ -23,6 +24,17 @@ keine Anmeldung, keine Internetverbindung nötig. Einmal geladen, laufen sie off
 
 Die Startseite beschreibt jedes Spiel ausführlich und lässt sich nach Fach,
 Jahrgangsstufe und Spielform filtern.
+
+## Teilen per QR-Code
+
+Jedes Spiel hat auf seinem Startbildschirm einen **Teilen**-Knopf. Er zeigt einen großen
+QR-Code, den die Schülerinnen und Schüler mit der Tablet-Kamera scannen – das Spiel öffnet
+sich dann direkt auf ihrem Gerät. Der Code wird offline erzeugt, ohne Internetdienst.
+
+Wird die Seite über GitHub Pages aufgerufen, zeigt der Code auf genau diese Adresse. Beim
+Öffnen einer lokalen Datei nimmt er stattdessen die veröffentlichte Fassung unter
+`https://mauthier-bit.github.io/Spiele-Suite/`; über „Adresse ändern“ lässt sich das im
+Spiel anpassen (die Angabe wird im Browser gespeichert).
 
 ## Benutzen
 
