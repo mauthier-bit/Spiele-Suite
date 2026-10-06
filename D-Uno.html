@@ -672,7 +672,7 @@ function afterPlay(card, bonusAgain){
   const me=S.players[S.current];
   if(me.hand.length===0) return win();
   if(me.hand.length===1) dunoBanner();
-  if(card.kind==="aktion" && card.act==="ziehzwei"){ drawCards(S.players[1-S.current],2); flash(`${S.players[1-S.current].name} zieht 2 & setzt aus`); return endTurn(true); }
+  if(card.kind==="aktion" && card.act==="ziehzwei"){ drawCards(S.players[1-S.current],2); flash(`${S.players[1-S.current].name} zieht 2 Karten`); return endTurn(false); }
   if(bonusAgain){ flash("🔁 Ganzes Distributivgesetz – du darfst nochmal legen!"); return endTurn(true); }
   return endTurn(false);
 }
@@ -723,7 +723,7 @@ function cpuStep(){
   if(card.kind==="ident"){ const bonus=isFullLaw(card,prevNeed); S.need={type:"card",card};
     updateCpu(`🤖 Computer legt ${plainVal(card)}`+(bonus?" – nochmal!":"")); if(bonus) again=true; }
   else if(card.act==="joker"){ S.need={type:"free"}; updateCpu("🤖 Computer legt Joker"); }
-  else if(card.act==="ziehzwei"){ drawCards(S.players[0],2); again=true; updateCpu("🤖 Computer legt 2 Ziehen – du ziehst 2"); }
+  else if(card.act==="ziehzwei"){ drawCards(S.players[0],2); updateCpu("🤖 Computer legt 2 Ziehen – du ziehst 2 Karten"); }
   else if(card.act==="wunschF"){ const f=cpuWish(); S.need={type:"factor",key:f.key,display:numHTML(f.num)}; updateCpu(`🤖 Computer wünscht einen Faktor`); }
   if(cpu.hand.length===0) return cpuWin();
   if(cpu.hand.length===1) dunoBanner();
@@ -799,7 +799,7 @@ function buildRules(){
 
     <h2>Aktionskarten (passen immer)</h2>
     <div class="rule-box">
-      <p><b>+2 · 2 Ziehen</b> – der andere zieht 2 Karten und setzt aus.</p>
+      <p><b>+2 · 2 Ziehen</b> – der andere zieht 2 Karten und ist danach ganz normal dran.</p>
       <p><b>★ Joker</b> – danach passt jede Karte.</p>
     </div>
     <div class="rule-box hi">
