@@ -222,7 +222,7 @@
       <li>Passt nichts, ziehst du eine Karte. Passt sie, darfst du sie sofort legen – sonst beendest du den Zug.</li>
       <li><b>Aktionskarten passen immer:</b></li>
       <li>· <b>Umkehr ⇅</b> – die Richtung dreht sich: Ab jetzt geht es <b>abwärts ↓</b>, es darf nur noch kleiner oder gleich gelegt werden – bis jemand die nächste Umkehrkarte legt.</li>
-      <li>· <b>2 Ziehen</b> – der andere zieht 2 Karten und setzt aus.</li>
+      <li>· <b>2 Ziehen</b> – der andere zieht 2 Karten und ist danach ganz normal dran.</li>
       <li>· <b>Joker</b> – danach passt jeder Wert; die gelegte Karte ist der neue Bezugswert, die Richtung bleibt.</li>
       <li>Nur noch eine Karte? Dann heißt es <b>Bruno!</b></li>
     </ul>
@@ -693,7 +693,7 @@ function afterPlay(card, again){
   if(me.hand.length===0) return win();
   if(me.hand.length===1) brunoBanner();
   if(card.kind==="aktion" && card.act==="ziehzwei"){
-    drawCards(S.players[1-S.current],2); flash(`${S.players[1-S.current].name} zieht 2 & setzt aus`); return endTurn(true);
+    drawCards(S.players[1-S.current],2); flash(`${S.players[1-S.current].name} zieht 2 Karten`); return endTurn(false);
   }
   if(again){ flash("Gleicher Wert – du darfst nochmal"); return endTurn(true); }
   return endTurn(false);
@@ -768,7 +768,7 @@ function cpuStep(){
   }
   else if(card.act==="joker"){ S.need={type:"free"}; updateCpu("🤖 Computer legt Joker – jeder Wert passt"); }
   else if(card.act==="umkehr"){ S.dir=-S.dir; updateCpu("🤖 Computer dreht um – jetzt "+(S.dir>0?"größer ↑":"kleiner ↓")); }
-  else if(card.act==="ziehzwei"){ drawCards(S.players[0],2); again=true; updateCpu("🤖 Computer legt 2 Ziehen – du ziehst 2"); }
+  else if(card.act==="ziehzwei"){ drawCards(S.players[0],2); updateCpu("🤖 Computer legt 2 Ziehen – du ziehst 2 Karten"); }
   if(cpu.hand.length===0) return cpuWin();
   if(cpu.hand.length===1) brunoBanner();
   clearTimeout(cpuTimer); cpuTimer=setTimeout(again?cpuStep:cpuFinish,CPU_DELAY);
