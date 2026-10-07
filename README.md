@@ -1,6 +1,6 @@
 # Spiele-Suite – Mathematik & Physik
 
-Elf Unterrichtsspiele für das iPad, zusammengefasst auf einer Startseite.
+Zwölf Unterrichtsspiele für das iPad, zusammengefasst auf einer Startseite.
 Alle Spiele sind **einzelne HTML-Dateien ohne externe Abhängigkeiten**: kein Server,
 keine Anmeldung, keine Internetverbindung nötig. Einmal geladen, laufen sie offline.
 
@@ -17,6 +17,7 @@ keine Anmeldung, keine Internetverbindung nötig. Einmal geladen, laufen sie off
 | [Fumino](Fumino.html) | 8 – 10 | Funktionsterm und Graph zuordnen | Domino, gegeneinander oder kooperativ |
 | [Kopfrechen-Duell](Kopfrechen-Duell.html) | 5 – 11 | Kopfrechnen und Grundwissen auf Zeit | Team-Duell für die ganze Klasse |
 | [Mattle](Mattle.html) | 5 – 11 | Kopfrechnen mit Strategie (Hex-Spielfeld) | Team-Duell für die ganze Klasse |
+| [Galgenmännchen](galgenmaennchen.html) | 5 – 13 | 475 Fachbegriffe aus dem LehrplanPLUS erraten | ganze Klasse, allein oder zwei Teams |
 | [Mathe-Tabu](mathe-tabu.html) | 5 – 13 | Fachbegriffe versprachlichen | Erklärspiel, zwei Teams |
 | [Physik-Tabu](physik-tabu.html) | 7 – 13 | physikalische Fachbegriffe versprachlichen | Erklärspiel, zwei Teams |
 | [Schiffe versenken](schiffe-versenken-koordinaten.html) | 5 | Koordinaten setzen und ablesen | Duell zu zweit oder gegen den Computer |
