@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Kantentest</title>
+<style>
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; height:100%;}
+  body{
+    background:#ffffff; color:#111;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    -webkit-user-select:none; user-select:none;
+  }
+  /* Prüfmuster: waagrechte schwarz-weiße Streifen ganz oben.
+     Ist die Kante scharf, sind die Streifen bis zum obersten Pixel klar
+     getrennt. Liegt der weiche Verlauf darüber, sind die obersten
+     Streifen verwaschen oder grau überdeckt. */
+  .muster{
+    height:72px;
+    background:repeating-linear-gradient(180deg,#000 0 6px,#fff 6px 12px);
+  }
+  .inhalt{padding:18px 20px 40px;}
+  h1{font-size:30px; margin:14px 0 4px;}
+  p{font-size:17px; line-height:1.45; margin:6px 0;}
+  .zeile{font-size:15px; color:#555;}
+  .wahl{display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 4px;}
+  .wahl a{
+    display:block; padding:10px 14px; border-radius:12px; text-decoration:none;
+    background:#eceff4; color:#1c2430; font-weight:700; font-size:17px;
+  }
+  .wahl a.an{background:#2b6cb0; color:#fff;}
+  .kasten{background:#f3f5f8; border-radius:14px; padding:14px 16px; margin-top:16px;}
+  /* Variante C: klebender Streifen, sichtbar über dem Inhalt */
+  #streifen{display:none; height:16px; background:#ffffff;}
+  body.vc #streifen{display:block; position:sticky; top:0; z-index:9;}
+  body.vd #streifen{display:block; position:fixed; top:0; left:0; width:100%; z-index:9;}
+  /* Variante B: bildschirmfüllende fixierte Hülle mit deckendem Hintergrund */
+  body.vb #huelle{position:fixed; inset:0; background:#ffffff; overflow:auto;}
+</style>
+</head>
+<body>
+<div id="streifen"></div>
+<div id="huelle">
+  <div class="muster"></div>
+  <div class="inhalt">
+    <h1 id="titel">Variante A</h1>
+    <p id="text">Nichts verändert – so sehen die Apps bisher aus.</p>
+    <p class="zeile">Oben die schwarz-weißen Streifen anschauen: <b>scharf</b> (klar getrennt bis ganz oben), <b>weich</b> (verwaschen / Nebel) oder <b>einfarbig</b> (oben ein glatter weißer Balken)?</p>
+    <div class="wahl" id="wahl"></div>
+    <div class="kasten">
+      <p class="zeile">So testen: diese Seite in Safari öffnen, eine Variante antippen, dann über <b>Teilen → Zum Home-Bildschirm</b> ablegen. Die Variante steckt in der Adresse, also für jede Variante einmal ablegen. Danach jedes Symbol starten und notieren, wie die Streifen oben aussehen.</p>
+    </div>
+    <p class="zeile" id="diag"></p>
+  </div>
+</div>
+<script>
+(function(){
+  var V={
+    a:['Variante A – Basis','Nichts verändert – so sehen die Apps bisher aus.'],
+    b:['Variante B – fixierte Hülle','Der ganze Inhalt steckt in einem bildschirmfüllenden, fixierten Kasten mit deckendem Hintergrund.'],
+    c:['Variante C – klebender Streifen','Ganz oben liegt ein 16 px hoher, klebender Streifen mit deckendem Hintergrund über dem Inhalt.'],
+    d:['Variante D – fixierter Streifen','Ganz oben liegt ein 16 px hoher, fixierter Streifen mit deckendem Hintergrund über dem Inhalt.'],
+    e:['Variante E – Manifest','Zusätzlich ein Web-App-Manifest und eine theme-color wie bei der Digitalen Tafel.']
+  };
+  var v=(location.search.match(/[?&]v=([a-e])/i)||[])[1];
+  v=v?v.toLowerCase():'a';
+  document.body.className='v'+v;
+  document.getElementById('titel').textContent=V[v][0];
+  document.getElementById('text').textContent=V[v][1];
+
+  if(v==='e'){
+    var m=document.createElement('meta'); m.name='theme-color'; m.content='#ffffff';
+    document.head.appendChild(m);
+    var mani={name:'Kantentest E',short_name:'Kante E',start_url:location.pathname+'?v=e',
+      scope:location.pathname,display:'standalone',background_color:'#ffffff',theme_color:'#ffffff'};
+    var l=document.createElement('link'); l.rel='manifest';
+    l.href=URL.createObjectURL(new Blob([JSON.stringify(mani)],{type:'application/manifest+json'}));
+    document.head.appendChild(l);
+  }
+
+  var w=document.getElementById('wahl');
+  'abcde'.split('').forEach(function(k){
+    var a=document.createElement('a');
+    a.href='?v='+k; a.textContent=k.toUpperCase();
+    if(k===v) a.className='an';
+    w.appendChild(a);
+  });
+
+  var st=(navigator.standalone||matchMedia('(display-mode: standalone)').matches)?'als App vom Homebildschirm':'in Safari';
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;top:0;left:0;width:1px;height:env(safe-area-inset-top,0px)';
+  document.body.appendChild(d);
+  var sat=Math.round(d.getBoundingClientRect().height); d.remove();
+  document.getElementById('diag').textContent='Läuft '+st+' · Fenster '+innerWidth+'×'+innerHeight+' px · oberer Sicherheitsabstand '+sat+' px';
+})();
+</script>
+</body>
+</html>
