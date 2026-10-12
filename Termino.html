@@ -208,12 +208,13 @@
 <script>
 /* Scharfe Kante unter der iPadOS-Statusleiste (iPadOS 26/27).
    WebKit legt in Web-Apps am oberen Rand sonst einen weichen Verlauf ueber
-   den Inhalt. Er entfaellt, wenn dort ein fixierter Kasten mit deckendem
-   Hintergrund liegt (am 12.10.2026 auf iPadOS 27 geprueft). Das Skript gibt
-   jedem bildschirmfuellenden fixierten Kasten den Hintergrund der Seite.
-   Gibt es keinen: scrollende Seiten bekommen oben einen deckenden Streifen,
-   sonst wird body selbst zur Huelle. */
+   den Inhalt. Er entfaellt nur, wenn dort oben ein fixierter Kasten mit
+   deckendem Hintergrund *sichtbar* liegt - Inhalt darueber macht ihn wieder
+   weich (am 12.10.2026 auf iPadOS 27 geprueft). Deshalb: ein 16 px hoher,
+   deckender Streifen ganz oben in der Farbe des Seitenhintergrunds, und wo
+   Inhalt in diese 16 px hineinragt, rueckt er um 16 px nach unten. */
 (function(){
+  var HOCH=16;
   function leer(f){ return !f || f==='transparent' || f.replace(/\s/g,'')==='rgba(0,0,0,0)'; }
   function seite(){
     var s=getComputedStyle(document.body), f=s.backgroundColor, b=s.backgroundImage;
@@ -222,24 +223,60 @@
     }
     return { farbe: leer(f) ? '#ffffff' : f, bild: (b && b!=='none') ? b : '' };
   }
-  var modus=((location.hash||'').match(/kante([0-9])/i)||[])[1]||'';
-  function ersteFarbe(){
-    var h=seite(), m=(h.bild||'').match(/rgba?\([^)]*\)/g) || [];
-    for(var i=0;i<m.length;i++){
-      var a=m[i].match(/,\s*([0-9.]+)\s*\)$/);
-      if(!a || parseFloat(a[1])>0.5) return m[i];
-    }
-    return h.farbe;
-  }
   function kaesten(){
     var alle=document.querySelectorAll('body > *, body > * > *'), raus=[];
     for(var i=0;i<alle.length;i++){
       var n=alle[i], s=getComputedStyle(n);
       if(s.position!=='fixed' || s.display==='none' || s.visibility==='hidden') continue;
+      if(n.id==='randKante') continue;
       var r=n.getBoundingClientRect();
       if(r.top<=4 && r.width>=innerWidth*0.9 && r.height>=innerHeight*0.9) raus.push(n);
     }
     return raus;
+  }
+  function tinte(n){
+    var r=n.getBoundingClientRect();
+    if(r.top>=HOCH || r.bottom<=0 || r.width<=0) return false;   /* liegt tiefer: Zweig ueberspringen */
+    var s=getComputedStyle(n);
+    if(s.display==='none' || s.visibility==='hidden' || s.opacity==='0') return false;
+    if(n.id==='randKante') return false;
+    var t=n.tagName.toLowerCase();
+    if(t==='img'||t==='svg'||t==='canvas'||t==='video') return true;
+    if(!leer(s.backgroundColor) || s.backgroundImage!=='none') return true;
+    if(parseFloat(s.borderTopWidth)>0) return true;
+    var kn=n.childNodes;
+    for(var j=0;j<kn.length;j++)
+      if(kn[j].nodeType===3 && kn[j].nodeValue.replace(/\s/g,'')) return true;
+    for(var i=0;i<n.children.length;i++) if(tinte(n.children[i])) return true;
+    return false;
+  }
+  function ragtRein(z){
+    for(var i=0;i<z.children.length;i++) if(tinte(z.children[i])) return true;
+    return false;
+  }
+  function luft(z){
+    if(z.dataset.kanteLuft) return;
+    if(!ragtRein(z)) return;            /* noch nichts oben - spaeter nochmal pruefen */
+    var p=parseFloat(getComputedStyle(z).paddingTop)||0;
+    z.dataset.kanteLuft='1';
+    if(p>=HOCH) return;
+    z.style.paddingTop=(p+HOCH)+'px';
+  }
+  var band=null;
+  function streifen(){
+    if(!band){
+      band=document.createElement('div');
+      band.id='randKante'; band.setAttribute('aria-hidden','true');
+      band.style.cssText='position:fixed;left:0;top:0;width:100%;height:'+HOCH+'px;'+
+        'z-index:2147483646;pointer-events:none';
+      document.body.appendChild(band);
+    }
+    var s=getComputedStyle(document.body), h=seite();
+    band.style.backgroundColor=h.farbe;
+    band.style.backgroundImage=h.bild||'none';
+    band.style.backgroundAttachment='fixed';
+    if(h.bild && s.backgroundAttachment!=='fixed')
+      band.style.backgroundSize='100% '+Math.max(innerHeight,document.body.scrollHeight)+'px';
   }
   var schild=null;
   function zeigen(txt){
@@ -251,72 +288,35 @@
         'font:600 12px/1.35 -apple-system,sans-serif;white-space:pre-wrap;pointer-events:none';
       document.body.appendChild(schild);
     }
-    schild.textContent='Kante K4'+(modus?('/'+modus):'')+' · '+innerWidth+'x'+innerHeight+'\n'+txt;
+    schild.textContent='Kante K5 · '+innerWidth+'x'+innerHeight+'\n'+txt;
   }
   function name(n){
     if(n.id) return '#'+n.id;
     var c=(typeof n.className==='string'&&n.className.trim())?'.'+n.className.trim().split(/\s+/)[0]:'';
     return n.tagName.toLowerCase()+c;
   }
-  var band=null;
-  function streifen(){
-    if(!band){
-      band=document.createElement('div');
-      band.id='randKante'; band.setAttribute('aria-hidden','true');
-      band.style.cssText='position:fixed;left:0;top:0;width:100%;height:16px;'+
-        'z-index:2147483646;pointer-events:none';
-      document.body.appendChild(band);
-    }
-    var s=getComputedStyle(document.body), h=seite();
-    band.style.display='block';
-    band.style.backgroundColor=h.farbe;
-    band.style.backgroundImage=h.bild||'none';
-    band.style.backgroundAttachment='fixed';
-    if(h.bild && s.backgroundAttachment!=='fixed')
-      band.style.backgroundSize='100% '+Math.max(innerHeight,document.body.scrollHeight)+'px';
-    return band;
-  }
   function malen(){
     var b=document.body; if(!b) return;
+    streifen();
     var k=kaesten(), h=null, text=[];
     if(!k.length){
-      var scrollt=document.documentElement.scrollHeight>innerHeight+2 || b.scrollHeight>innerHeight+2;
-      if(scrollt){
-        /* scrollende Seite: nur ein deckender Streifen oben, am Scrollen aendert sich nichts */
-        streifen();
-        zeigen('kein Kasten, Seite scrollt – Streifen oben, bg='+getComputedStyle(band).backgroundColor);
-        return;
-      }
-      if(!b.dataset.kante){
-        var sb=getComputedStyle(b);
-        if(sb.position!=='static'){ zeigen('kein Kasten, body nicht static'); return; }
-        b.style.position='fixed'; b.style.left='0'; b.style.top='0';
-        b.style.width='100%'; b.style.height='100%';
-        if(leer(sb.backgroundColor)) b.style.backgroundColor=seite().farbe;
-        b.dataset.kante='1';
-      }
-      zeigen('kein Kasten – body ist die Huelle, bg='+getComputedStyle(b).backgroundColor);
-      return;
+      luft(b);
+      text.push('kein Kasten, Streifen oben');
     }
-    if(modus==='2') streifen();             /* Test: zusaetzlich ein Streifen oben */
-    else if(band) band.style.display='none';
     for(var i=0;i<k.length;i++){
       var z=k[i], s=getComputedStyle(z);
       if(!z.dataset.kante){
         if(leer(s.backgroundColor)){
-          if(modus==='1'){                      /* Test: nur eine einfarbige Flaeche */
-            z.style.backgroundColor=ersteFarbe();
-            z.style.backgroundImage='none';
-          }else{
-            if(!h) h=seite();
-            z.style.backgroundColor=h.farbe;
-            if(s.backgroundImage==='none' && h.bild) z.style.backgroundImage=h.bild;
-          }
+          if(!h) h=seite();
+          z.style.backgroundColor=h.farbe;
+          if(s.backgroundImage==='none' && h.bild) z.style.backgroundImage=h.bild;
         }
         z.dataset.kante='1';
         s=getComputedStyle(z);
       }
-      text.push(name(z)+' bg='+s.backgroundColor+(s.backgroundImage!=='none'?'+Verlauf':''));
+      luft(z);
+      text.push(name(z)+' bg='+s.backgroundColor+(s.backgroundImage!=='none'?'+Verlauf':'')+
+        ' pt='+getComputedStyle(z).paddingTop);
     }
     zeigen(text.join('\n'));
   }
