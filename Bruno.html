@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>Bruno – das Bruch-Spiel</title>
 <style>
   :root{
@@ -172,6 +172,40 @@
     .card.big{width:118px;height:168px;} .lg{font-size:30px;} .hand{padding-top:14px;}
   }
 </style>
+<script>
+/* Scharfe Kante unter der iPadOS-Statusleiste (iPadOS 26/27).
+   WebKit legt bei Web-Apps am oberen Rand einen weichen Verlauf ueber den
+   Inhalt. Liegt dort ein bildschirmfuellendes, fixiertes Element mit
+   deckendem Hintergrund, zeichnet WebKit stattdessen dessen Farbe -
+   die Kante bleibt scharf (so macht es auch die Digitale Tafel). */
+(function(){
+  function malen(){
+    var b=document.body; if(!b) return;
+    var l=document.getElementById('randScharf');
+    if(!l){
+      l=document.createElement('div');
+      l.id='randScharf'; l.setAttribute('aria-hidden','true');
+      l.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;z-index:-1;pointer-events:none';
+      b.insertBefore(l,b.firstChild);
+    }
+    var leer=function(f){ return !f || f==='transparent' || f.replace(/\s/g,'')==='rgba(0,0,0,0)'; };
+    var s=getComputedStyle(b), farbe=s.backgroundColor, bild=s.backgroundImage, fest=s.backgroundAttachment;
+    if(leer(farbe) && (!bild || bild==='none')){
+      s=getComputedStyle(document.documentElement);
+      farbe=s.backgroundColor; bild=s.backgroundImage; fest=s.backgroundAttachment;
+    }
+    var scrollt=document.documentElement.scrollHeight>window.innerHeight+2;
+    if(bild && bild!=='none' && scrollt && fest!=='fixed') bild='none';
+    l.style.backgroundColor = leer(farbe) ? '#ffffff' : farbe;
+    l.style.backgroundImage = (bild && bild!=='none') ? bild : 'none';
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',malen);
+  else malen();
+  addEventListener('load',malen);
+  addEventListener('resize',malen);
+  try{ matchMedia('(prefers-color-scheme:dark)').addEventListener('change',malen); }catch(e){}
+})();
+</script>
 </head>
 <body>
 <div id="app"></div>
