@@ -179,10 +179,11 @@
 <script>
 /* Scharfe Kante unter der iPadOS-Statusleiste (iPadOS 26/27).
    WebKit legt in Web-Apps am oberen Rand sonst einen weichen Verlauf ueber
-   den Inhalt. Er entfaellt, wenn das Element am oberen Rand in einem
-   bildschirmfuellenden, fixierten Kasten mit deckendem Hintergrund steckt
-   (am 12.10.2026 auf iPadOS 27 geprueft). Das Skript gibt jedem solchen
-   Kasten den Hintergrund der Seite; gibt es keinen, wird body selbst dazu. */
+   den Inhalt. Er entfaellt, wenn dort ein fixierter Kasten mit deckendem
+   Hintergrund liegt (am 12.10.2026 auf iPadOS 27 geprueft). Das Skript gibt
+   jedem bildschirmfuellenden fixierten Kasten den Hintergrund der Seite.
+   Gibt es keinen: scrollende Seiten bekommen oben einen deckenden Streifen,
+   sonst wird body selbst zur Huelle. */
 (function(){
   function leer(f){ return !f || f==='transparent' || f.replace(/\s/g,'')==='rgba(0,0,0,0)'; }
   function seite(){
@@ -207,38 +208,59 @@
     if(!/kante/i.test(location.hash)) return;
     if(!schild){
       schild=document.createElement('div');
-      schild.style.cssText='position:fixed;left:6px;bottom:52px;z-index:99999;max-width:92%;'+
+      schild.style.cssText='position:fixed;left:6px;bottom:52px;z-index:2147483647;max-width:92%;'+
         'padding:6px 9px;border-radius:8px;background:#ffe600;color:#000;'+
         'font:600 12px/1.35 -apple-system,sans-serif;white-space:pre-wrap;pointer-events:none';
       document.body.appendChild(schild);
     }
-    schild.textContent='Kante K2 \u00b7 '+txt;
+    schild.textContent='Kante K3 · '+txt;
   }
   function name(n){
     if(n.id) return '#'+n.id;
     var c=(typeof n.className==='string'&&n.className.trim())?'.'+n.className.trim().split(/\s+/)[0]:'';
     return n.tagName.toLowerCase()+c;
   }
+  var band=null;
+  function streifen(){
+    if(!band){
+      band=document.createElement('div');
+      band.id='randKante'; band.setAttribute('aria-hidden','true');
+      band.style.cssText='position:fixed;left:0;top:0;width:100%;height:16px;'+
+        'z-index:2147483646;pointer-events:none';
+      document.body.appendChild(band);
+    }
+    var s=getComputedStyle(document.body), h=seite();
+    band.style.display='block';
+    band.style.backgroundColor=h.farbe;
+    band.style.backgroundImage=h.bild||'none';
+    band.style.backgroundAttachment='fixed';
+    if(h.bild && s.backgroundAttachment!=='fixed')
+      band.style.backgroundSize='100% '+Math.max(innerHeight,document.body.scrollHeight)+'px';
+    return band;
+  }
   function malen(){
     var b=document.body; if(!b) return;
     var k=kaesten(), h=null, text=[];
     if(!k.length){
+      var scrollt=document.documentElement.scrollHeight>innerHeight+2 || b.scrollHeight>innerHeight+2;
+      if(scrollt){
+        /* scrollende Seite: nur ein deckender Streifen oben, am Scrollen aendert sich nichts */
+        streifen();
+        zeigen('kein Kasten, Seite scrollt – Streifen oben, bg='+getComputedStyle(band).backgroundColor);
+        return;
+      }
       if(!b.dataset.kante){
         var sb=getComputedStyle(b);
         if(sb.position!=='static'){ zeigen('kein Kasten, body nicht static'); return; }
         b.style.position='fixed'; b.style.left='0'; b.style.top='0';
         b.style.width='100%'; b.style.height='100%';
-        if(document.documentElement.scrollHeight>innerHeight+2){
-          /* overflow von body wandert sonst auf das Fenster - dann scrollt body selbst nicht */
-          document.documentElement.style.overflow='hidden';
-          b.style.overflowY='auto'; b.style.webkitOverflowScrolling='touch';
-        }
         if(leer(sb.backgroundColor)) b.style.backgroundColor=seite().farbe;
         b.dataset.kante='1';
       }
-      zeigen('kein Kasten \u2013 body ist die H\u00fclle, bg='+getComputedStyle(b).backgroundColor);
+      zeigen('kein Kasten – body ist die Huelle, bg='+getComputedStyle(b).backgroundColor);
       return;
     }
+    if(band) band.style.display='none';
     for(var i=0;i<k.length;i++){
       var z=k[i], s=getComputedStyle(z);
       if(!z.dataset.kante){
