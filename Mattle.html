@@ -297,6 +297,24 @@ body{
     }
     return null;
   }
+  var schild=null;
+  function zeigen(txt){
+    if(!/kante/i.test(location.hash)) return;
+    if(!schild){
+      schild=document.createElement('div');
+      schild.style.cssText='position:fixed;left:6px;bottom:52px;z-index:99999;max-width:92%;'+
+        'padding:6px 9px;border-radius:8px;background:#ffe600;color:#000;'+
+        'font:600 12px/1.35 -apple-system,sans-serif;white-space:pre-wrap;pointer-events:none';
+      document.body.appendChild(schild);
+    }
+    schild.textContent='Kante K1 · '+txt;
+  }
+  function name(n){
+    if(!n) return '?';
+    if(n.id) return '#'+n.id;
+    var c=(typeof n.className==='string'&&n.className.trim())?'.'+n.className.trim().split(/\s+/)[0]:'';
+    return n.tagName.toLowerCase()+c;
+  }
   function malen(){
     var b=document.body; if(!b) return;
     var z=huelle();
@@ -314,17 +332,31 @@ body{
       }
       if(leer(sb.backgroundColor)) b.style.backgroundColor=seite().farbe;
       b.dataset.kante='1';
+      zeigen('keine Hülle gefunden – body ist jetzt die Hülle, bg='+getComputedStyle(b).backgroundColor);
       return;
     }
-    if(z.dataset.kante) return;
+    if(z.dataset.kante){ zeigen(name(z)+' schon versorgt, bg='+getComputedStyle(z).backgroundColor); return; }
     var s=getComputedStyle(z);
-    if(!leer(s.backgroundColor)){ z.dataset.kante='1'; return; }   /* schon deckend */
+    if(!leer(s.backgroundColor)){
+      z.dataset.kante='1';
+      zeigen(name(z)+' hatte schon einen Hintergrund: '+s.backgroundColor);
+      return;
+    }
     var h=seite();
     z.style.backgroundColor=h.farbe;
     if(s.backgroundImage==='none' && h.bild) z.style.backgroundImage=h.bild;
     z.dataset.kante='1';
+    zeigen(name(z)+' bekommt '+h.farbe+(h.bild?' + Verlauf':'')+', pos='+s.position);
   }
-  function spaeter(){ setTimeout(malen,0); setTimeout(malen,300); }
+  var warte=null;
+  function spaeter(){
+    if(warte) return;
+    warte=setTimeout(function(){ warte=null; malen(); },200);
+  }
+  try{
+    new MutationObserver(spaeter).observe(document.documentElement,
+      {childList:true, subtree:true, attributes:true, attributeFilter:['class','style','hidden']});
+  }catch(e){}
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',malen);
   else malen();
   addEventListener('load',spaeter);
