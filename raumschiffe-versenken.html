@@ -233,6 +233,15 @@ sub{font-size:.7em;line-height:0}
     }
     return { farbe: leer(f) ? '#ffffff' : f, bild: (b && b!=='none') ? b : '' };
   }
+  var modus=((location.hash||'').match(/kante([0-9])/i)||[])[1]||'';
+  function ersteFarbe(){
+    var h=seite(), m=(h.bild||'').match(/rgba?\([^)]*\)/g) || [];
+    for(var i=0;i<m.length;i++){
+      var a=m[i].match(/,\s*([0-9.]+)\s*\)$/);
+      if(!a || parseFloat(a[1])>0.5) return m[i];
+    }
+    return h.farbe;
+  }
   function kaesten(){
     var alle=document.querySelectorAll('body > *, body > * > *'), raus=[];
     for(var i=0;i<alle.length;i++){
@@ -253,7 +262,7 @@ sub{font-size:.7em;line-height:0}
         'font:600 12px/1.35 -apple-system,sans-serif;white-space:pre-wrap;pointer-events:none';
       document.body.appendChild(schild);
     }
-    schild.textContent='Kante K3 · '+txt;
+    schild.textContent='Kante K4'+(modus?('/'+modus):'')+' · '+innerWidth+'x'+innerHeight+'\n'+txt;
   }
   function name(n){
     if(n.id) return '#'+n.id;
@@ -300,14 +309,20 @@ sub{font-size:.7em;line-height:0}
       zeigen('kein Kasten – body ist die Huelle, bg='+getComputedStyle(b).backgroundColor);
       return;
     }
-    if(band) band.style.display='none';
+    if(modus==='2') streifen();             /* Test: zusaetzlich ein Streifen oben */
+    else if(band) band.style.display='none';
     for(var i=0;i<k.length;i++){
       var z=k[i], s=getComputedStyle(z);
       if(!z.dataset.kante){
         if(leer(s.backgroundColor)){
-          if(!h) h=seite();
-          z.style.backgroundColor=h.farbe;
-          if(s.backgroundImage==='none' && h.bild) z.style.backgroundImage=h.bild;
+          if(modus==='1'){                      /* Test: nur eine einfarbige Flaeche */
+            z.style.backgroundColor=ersteFarbe();
+            z.style.backgroundImage='none';
+          }else{
+            if(!h) h=seite();
+            z.style.backgroundColor=h.farbe;
+            if(s.backgroundImage==='none' && h.bild) z.style.backgroundImage=h.bild;
+          }
         }
         z.dataset.kante='1';
         s=getComputedStyle(z);
