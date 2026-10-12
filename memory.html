@@ -176,6 +176,68 @@
 
   @media (prefers-reduced-motion:reduce){ *{animation:none!important; transition:none!important;} }
 </style>
+<script>
+/* Scharfe Kante unter der iPadOS-Statusleiste (iPadOS 26/27).
+   WebKit legt in Web-Apps am oberen Rand sonst einen weichen Verlauf ueber
+   den Inhalt. Er entfaellt, wenn das Element am oberen Rand in einem
+   bildschirmfuellenden, fixierten Kasten mit deckendem Hintergrund steckt.
+   Am 12.10.2026 auf iPadOS 27 geprueft (Variante B des Kantentests). */
+(function(){
+  function leer(f){ return !f || f==='transparent' || f.replace(/\s/g,'')==='rgba(0,0,0,0)'; }
+  function seite(){
+    var s=getComputedStyle(document.body), f=s.backgroundColor, b=s.backgroundImage;
+    if(leer(f) && (!b || b==='none')){
+      s=getComputedStyle(document.documentElement); f=s.backgroundColor; b=s.backgroundImage;
+    }
+    return { farbe: leer(f) ? '#ffffff' : f, bild: (b && b!=='none') ? b : '' };
+  }
+  function huelle(){
+    var el=document.elementFromPoint(Math.round(innerWidth/2),3) || document.elementFromPoint(6,3);
+    for(var n=el; n && n.nodeType===1 && n!==document.body; n=n.parentElement){
+      var s=getComputedStyle(n);
+      if(s.position==='fixed' || s.position==='sticky'){
+        var r=n.getBoundingClientRect();
+        if(r.top<=4 && r.width>=innerWidth*0.9 && r.height>=10) return n;
+      }
+    }
+    return null;
+  }
+  function malen(){
+    var b=document.body; if(!b) return;
+    var z=huelle();
+    if(!z){                                   /* keine Huelle da: body wird zur Huelle */
+      if(b.dataset.kante) return;
+      var sb=getComputedStyle(b);
+      if(sb.position!=='static') return;      /* Seite regelt das selbst */
+      var scrollt=document.documentElement.scrollHeight>innerHeight+2;
+      b.style.position='fixed'; b.style.left='0'; b.style.top='0';
+      b.style.width='100%'; b.style.height='100%';
+      if(scrollt){
+        /* overflow von body wandert sonst auf das Fenster - dann scrollt body selbst nicht */
+        document.documentElement.style.overflow='hidden';
+        b.style.overflowY='auto'; b.style.webkitOverflowScrolling='touch';
+      }
+      if(leer(sb.backgroundColor)) b.style.backgroundColor=seite().farbe;
+      b.dataset.kante='1';
+      return;
+    }
+    if(z.dataset.kante) return;
+    var s=getComputedStyle(z);
+    if(!leer(s.backgroundColor)){ z.dataset.kante='1'; return; }   /* schon deckend */
+    var h=seite();
+    z.style.backgroundColor=h.farbe;
+    if(s.backgroundImage==='none' && h.bild) z.style.backgroundImage=h.bild;
+    z.dataset.kante='1';
+  }
+  function spaeter(){ setTimeout(malen,0); setTimeout(malen,300); }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',malen);
+  else malen();
+  addEventListener('load',spaeter);
+  addEventListener('resize',spaeter);
+  addEventListener('orientationchange',spaeter);
+  addEventListener('pointerup',spaeter,true);
+})();
+</script>
 </head>
 <body>
 
