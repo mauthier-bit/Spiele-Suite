@@ -256,6 +256,21 @@ input{font:inherit;-webkit-user-select:text;user-select:text}
     if(p>=HOCH) return;
     z.style.paddingTop=(p+HOCH)+'px';
   }
+  function schonGut(){
+    /* Liegt oben bereits eine deckende, fixierte oder klebende Leiste
+       (kein bildschirmfuellender Kasten), ist nichts zu tun. */
+    var st=document.elementsFromPoint?document.elementsFromPoint(Math.round(innerWidth/2),2):[];
+    for(var i=0;i<st.length;i++){
+      var n=st[i];
+      if(n.id==='randKante') continue;
+      if(n===document.body || n===document.documentElement) return false;
+      var s=getComputedStyle(n), r=n.getBoundingClientRect();
+      return (s.position==='fixed'||s.position==='sticky') && r.top<=4 &&
+             r.width>=innerWidth*0.8 && r.height>=6 && r.height<=innerHeight*0.6 &&
+             !leer(s.backgroundColor);
+    }
+    return false;
+  }
   var band=null;
   function streifen(){
     if(!band){
@@ -291,7 +306,13 @@ input{font:inherit;-webkit-user-select:text;user-select:text}
   }
   function malen(){
     var b=document.body; if(!b) return;
+    if(schonGut()){
+      if(band) band.style.display='none';
+      zeigen('oben liegt schon eine deckende Leiste');
+      return;
+    }
     streifen();
+    if(band) band.style.display='block';
     var k=kaesten(), h=null, text=[];
     if(!k.length){
       luft(b);
