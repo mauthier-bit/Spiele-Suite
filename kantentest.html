@@ -64,9 +64,12 @@
     b:['Variante B – fixierte Hülle','Der ganze Inhalt steckt in einem bildschirmfüllenden, fixierten Kasten mit deckendem Hintergrund.'],
     c:['Variante C – klebender Streifen','Ganz oben liegt ein 16 px hoher, klebender Streifen mit deckendem Hintergrund über dem Inhalt.'],
     d:['Variante D – fixierter Streifen','Ganz oben liegt ein 16 px hoher, fixierter Streifen mit deckendem Hintergrund über dem Inhalt.'],
-    e:['Variante E – Manifest','Zusätzlich ein Web-App-Manifest und eine theme-color wie bei der Digitalen Tafel.']
+    e:['Variante E – Manifest','Zusätzlich ein Web-App-Manifest und eine theme-color wie bei der Digitalen Tafel.'],
+    f:['Variante F – wie Bruno','Fixierte Hülle als Flex-Spalte, Hintergrund per Skript gesetzt: deckende Farbe plus Verlaufsbild. Genau das, was Bruno jetzt macht.'],
+    g:['Variante G – wie F, aber scrollbar','Wie F, zusätzlich ist die Hülle ein Scroll-Bereich (overflow:auto) – wie die Hülle im ersten Test.'],
+    h:['Variante H – wie F, nur einfarbig','Wie F, aber die Hülle bekommt nur eine deckende Farbe, kein Verlaufsbild.']
   };
-  var v=(location.search.match(/[?&]v=([a-e])/i)||[])[1];
+  var v=(location.search.match(/[?&]v=([a-h])/i)||[])[1];
   v=v?v.toLowerCase():'a';
   document.body.className='v'+v;
   document.getElementById('titel').textContent=V[v][0];
@@ -82,8 +85,22 @@
     document.head.appendChild(l);
   }
 
+  if('fgh'.indexOf(v)>=0){
+    document.body.style.color='#f2eef8';
+    document.body.style.backgroundColor='rgba(0, 0, 0, 0)';
+    document.body.style.backgroundImage='linear-gradient(180deg, rgb(46, 35, 64), rgb(25, 18, 33))';
+    var hu=document.getElementById('huelle');
+    hu.style.position='fixed'; hu.style.left='0'; hu.style.top='0';
+    hu.style.width='100%'; hu.style.height='100%';
+    hu.style.display='flex'; hu.style.flexDirection='column';
+    if(v==='g') hu.style.overflow='auto';
+    if(v==='h'){ hu.style.backgroundColor='rgb(46, 35, 64)'; }
+    else { hu.style.backgroundColor='#ffffff';
+           hu.style.backgroundImage='linear-gradient(180deg, rgb(46, 35, 64), rgb(25, 18, 33))'; }
+  }
+
   var w=document.getElementById('wahl');
-  'abcde'.split('').forEach(function(k){
+  'abcdefgh'.split('').forEach(function(k){
     var a=document.createElement('a');
     a.href='?v='+k; a.textContent=k.toUpperCase();
     if(k===v) a.className='an';
