@@ -1,8 +1,10 @@
 # Spiele-Suite – Mathematik & Physik
 
-Zwölf Unterrichtsspiele für das iPad, zusammengefasst auf einer Startseite.
+Vierzehn Unterrichtsspiele für das iPad, zusammengefasst auf einer Startseite.
 Alle Spiele sind **einzelne HTML-Dateien ohne externe Abhängigkeiten**: kein Server,
 keine Anmeldung, keine Internetverbindung nötig. Einmal geladen, laufen sie offline.
+Einzige Ausnahme ist **MotionTrace**: Es braucht Kamera und Internet, weil die
+Bewegungserkennung ihr Modell beim Start nachlädt.
 
 **Start:** [`index.html`](index.html)
 
@@ -20,6 +22,8 @@ keine Anmeldung, keine Internetverbindung nötig. Einmal geladen, laufen sie off
 | [Galgenmännchen](galgenmaennchen.html) | 5 – 13 | 475 Fachbegriffe aus dem LehrplanPLUS erraten | ganze Klasse, allein oder zwei Teams |
 | [Mathe-Tabu](mathe-tabu.html) | 5 – 13 | Fachbegriffe versprachlichen | Erklärspiel, zwei Teams |
 | [Physik-Tabu](physik-tabu.html) | 7 – 13 | physikalische Fachbegriffe versprachlichen | Erklärspiel, zwei Teams |
+| [MotionTrace](motiontrace.html) | ab 8 | Funktionsgraphen vor der Kamera nachlaufen (braucht Kamera und Internet) | Battle zu zweit |
+| [Bewegungsdiagramme](bewegungsdiagramme.html) | ab 8 | Ort, Geschwindigkeit, Beschleunigung – Zielkurve nachfahren | Battle zu zweit am iPad |
 | [Schiffe versenken](schiffe-versenken-koordinaten.html) | 5 | Koordinaten setzen und ablesen | Duell zu zweit oder gegen den Computer |
 | [Raumschiffe versenken](raumschiffe-versenken.html) | Oberstufe | räumliches Koordinatensystem, Punkte und Vektoren | Duell zu zweit oder gegen den Computer |
 

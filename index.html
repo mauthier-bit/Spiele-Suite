@@ -322,7 +322,7 @@
   <header class="top">
     <div class="kicker">Mathematik &amp; Physik · fürs iPad</div>
     <h1>Spiele<b>·</b>Suite</h1>
-    <p>Zwölf fertige Unterrichtsspiele – alle laufen offline im Browser, ohne Anmeldung und ohne Installation. Filtern, antippen, loslegen.</p>
+    <p>Vierzehn fertige Unterrichtsspiele – alle laufen offline im Browser, ohne Anmeldung und ohne Installation. Filtern, antippen, loslegen.</p>
     <div class="shareslot"></div>
   </header>
 
@@ -542,6 +542,40 @@ const GAMES = [
       "Auswertung nach jedem Durchgang mit korrigierbaren Wertungen"
     ],
     keywords:"tabu physik begriffe erklären optik elektrizität mechanik energie wärmelehre kernphysik"
+  },
+  {
+    file:"motiontrace.html", title:"MotionTrace", tagline:"Battle vor der Kamera",
+    icon:"🎥", color:"#0891b2", fach:["Mathematik"], form:"Duell zu zweit",
+    stufen:[8,9,10,11,12,13], stufenText:"ab Jahrgangsstufe 8",
+    sozial:"Zwei Personen vor der Kamera, Klasse schaut zu",
+    thema:"Funktionsgraphen mit dem eigenen Körper nachlaufen",
+    kurz:"Die Kamera verfolgt die Bewegung im Raum und zeichnet daraus live einen Graphen. Im Battle laufen zwei Personen gleichzeitig denselben Zielgraphen nach – wer näher dran bleibt, führt.",
+    ziel:"Der Zielgraph wird als Spline oder freihändig gezeichnet. <b>Level 1</b> wertet die Funktion selbst (den Ort), <b>Level 2</b> die Ableitung (die Geschwindigkeit) – damit wird der Zusammenhang zwischen Funktion und Ableitung körperlich erfahrbar. Die Punktestände beider laufen live mit.",
+    punkte:[
+      "Achsen als <b>Funktion</b> und <b>Ableitung</b> beschriftet; für den Physikunterricht auf Ort und Geschwindigkeit umschaltbar",
+      "Drei Reiter: Aufzeichnung, Bewegungsziel (allein üben) und Battle",
+      "Zielpfad per Spline-Punkten oder freihändig, Aufnahmedauer frei oder fest",
+      "Daten als CSV ausgebbar und druckbar",
+      "<b>Braucht Kamera und Internet</b> – die Bewegungserkennung lädt ihr Modell beim Start nach; die Bilder bleiben auf dem Gerät"
+    ],
+    keywords:"motiontrace kamera bewegung funktion ableitung graph nachlaufen battle pose körper"
+  },
+  {
+    file:"bewegungsdiagramme.html", title:"Bewegungsdiagramme", tagline:"Battle: Zielkurve nachfahren",
+    icon:"🏃", color:"#ea580c", fach:["Physik"], form:"Duell zu zweit",
+    stufen:[8,9,10,11,12,13], stufenText:"ab Jahrgangsstufe 8",
+    sozial:"Zu zweit an einem iPad",
+    thema:"Ort, Geschwindigkeit und Beschleunigung",
+    kurz:"Ein Finger fährt auf dem Lineal, daraus entstehen gleichzeitig x(t)-, v(t)- und a(t)-Diagramm. Im Battle bekommen beide Spieler ein eigenes Feld am Bildschirmrand und fahren nach dem Countdown dieselbe Zielkurve nach.",
+    ziel:"Gewertet wird, wie viel Prozent der Zeit die eigene Kurve im Toleranzband um das Ziel liegt. Die Zielkurve lässt sich wahlweise im x(t)-, v(t)- oder a(t)-Diagramm vorgeben – wer die Geschwindigkeit treffen soll, muss den Zusammenhang der drei Diagramme verstanden haben.",
+    punkte:[
+      "Drei Spielarten: freie <b>Aufnahme</b>, <b>Ziel</b> allein nachfahren und <b>Battle</b> zu zweit",
+      "Zielkurve in x(t), v(t) oder a(t) vorgeben, Dauer und Toleranz einstellbar",
+      "Glättung, Tangenten, Flächen unter v(t) und a(t), Stellen und Intervalle ablesbar",
+      "Auch zweidimensionale Bewegungen mit Vektorpfeilen und Stroboskop-Darstellung",
+      "Messwerte als CSV exportierbar"
+    ],
+    keywords:"bewegung diagramm ort geschwindigkeit beschleunigung kinematik battle zielkurve nachfahren tangente"
   },
   {
     file:"schiffe-versenken-koordinaten.html", title:"Schiffe versenken", tagline:"Im Koordinatensystem",
