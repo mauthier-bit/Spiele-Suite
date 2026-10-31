@@ -1,6 +1,6 @@
 # Spiele-Suite – Mathematik & Physik
 
-Vierzehn Unterrichtsspiele für das iPad, zusammengefasst auf einer Startseite.
+Sechzehn Unterrichtsspiele für das iPad, zusammengefasst auf einer Startseite.
 Alle Spiele sind **einzelne HTML-Dateien ohne externe Abhängigkeiten**: kein Server,
 keine Anmeldung, keine Internetverbindung nötig. Einmal geladen, laufen sie offline.
 Einzige Ausnahme ist **MotionTrace**: Es braucht Kamera und Internet, weil die
@@ -24,6 +24,8 @@ Bewegungserkennung ihr Modell beim Start nachlädt.
 | [Physik-Tabu](physik-tabu.html) | 7 – 13 | physikalische Fachbegriffe versprachlichen | Erklärspiel, zwei Teams |
 | [MotionTrace](motiontrace.html) | ab 8 | Funktionsgraphen vor der Kamera nachlaufen (braucht Kamera und Internet) | Battle zu zweit |
 | [Bewegungsdiagramme](bewegungsdiagramme.html) | ab 8 | Ort, Geschwindigkeit, Beschleunigung – Zielkurve nachfahren | Battle zu zweit am iPad |
+| [Koordinaten-Schatzsuche](Koordinaten-Schatzsuche.html) | 5 | Punkte ablesen und eintragen, Schritt für Schritt zum Schatz | Rätsel, allein oder zu zweit |
+| [Geometrische Schatzsuche](Schatzsuche.html) | 7 | Konstruktionen und geometrische Örter | Rätsel, allein oder zu zweit |
 | [Schiffe versenken](schiffe-versenken-koordinaten.html) | 5 | Koordinaten setzen und ablesen | Duell zu zweit oder gegen den Computer |
 | [Raumschiffe versenken](raumschiffe-versenken.html) | Oberstufe | räumliches Koordinatensystem, Punkte und Vektoren | Duell zu zweit oder gegen den Computer |
 

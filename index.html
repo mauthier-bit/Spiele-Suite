@@ -322,7 +322,7 @@
   <header class="top">
     <div class="kicker">Mathematik &amp; Physik · fürs iPad</div>
     <h1>Spiele<b>·</b>Suite</h1>
-    <p>Vierzehn fertige Unterrichtsspiele – alle laufen offline im Browser, ohne Anmeldung und ohne Installation. Filtern, antippen, loslegen.</p>
+    <p>Sechzehn fertige Unterrichtsspiele – bis auf MotionTrace laufen alle offline im Browser, ohne Anmeldung und ohne Installation. Filtern, antippen, loslegen.</p>
     <div class="shareslot"></div>
   </header>
 
@@ -578,6 +578,38 @@ const GAMES = [
     keywords:"bewegung diagramm ort geschwindigkeit beschleunigung kinematik battle zielkurve nachfahren tangente"
   },
   {
+    file:"Koordinaten-Schatzsuche.html", title:"Koordinaten-Schatzsuche", tagline:"Punkte ablesen und eintragen",
+    icon:"🗺️", color:"#b4813a", fach:["Mathematik"], form:"Rätsel",
+    stufen:[5,6], stufenText:"Klasse 5",
+    sozial:"Allein oder zu zweit am iPad",
+    thema:"Koordinaten im Gitternetz",
+    kurz:"Jeder Hinweis nennt Koordinaten – aber auf der Karte ist noch nichts eingezeichnet. Punkte ablesen, selbst eintragen und so Schritt für Schritt zum Schatz finden.",
+    ziel:"Punkte werden als P(x;y) angegeben. Mit den Werkzeugen lassen sich Punkt, Kreis, Strecke, Gerade, Parallele und Lot einzeichnen; Küste, Fluss und Mauer sind als Linien schon da. Ein Schritt lässt sich zurücknehmen, die Suche jederzeit neu starten.",
+    punkte:[
+      "Werkzeuge: Punkt, Kreis, Strecke, Gerade, Parallele und Lot",
+      "Gefundene Marken werden mit ihren Koordinaten eingetragen – das Ablesen wird mitgeprüft",
+      "Tipp-Knopf für den nächsten Hinweis, Lage-Knopf für die geometrische Hilfe",
+      "Mit dem Lehrercode lassen sich alle Suchen und die Lösungsanzeige freischalten"
+    ],
+    keywords:"schatzsuche koordinaten punkte ablesen eintragen gitternetz karte rätsel geometrie"
+  },
+  {
+    file:"Schatzsuche.html", title:"Geometrische Schatzsuche", tagline:"Mit Zirkel und Lineal zum Schatz",
+    icon:"🧭", color:"#7d5a3c", fach:["Mathematik"], form:"Rätsel",
+    stufen:[7,8], stufenText:"Klasse 7",
+    sozial:"Allein oder zu zweit am iPad",
+    thema:"Konstruktionen und geometrische Örter",
+    kurz:"Die Hinweise beschreiben, wo der Schatz liegt – „gleich weit von zwei Bäumen“, „auf der Winkelhalbierenden“. Wer die passende Konstruktion ausführt, grenzt den Ort immer weiter ein.",
+    ziel:"Werkzeug wählen, die bestimmenden Punkte und Linien antippen – der geometrische Ort wird gezeichnet. Jede Konstruktion wandert ins <b>Logbuch</b>, sodass der Weg zum Schatz nachvollziehbar bleibt.",
+    punkte:[
+      "Werkzeuge: Zirkel, Lineal, Punkt, Mittelsenkrechte, Lot, Winkelhalbierende und Parallele",
+      "Logbuch der Konstruktionen hält jeden Schritt fest",
+      "Tipp-Knopf, wenn ein Hinweis unklar bleibt",
+      "Mit dem Lehrercode lassen sich alle Werkzeuge und die weiteren Schatzsuchen freischalten"
+    ],
+    keywords:"schatzsuche konstruktion zirkel lineal mittelsenkrechte winkelhalbierende lot parallele geometrischer ort rätsel"
+  },
+  {
     file:"schiffe-versenken-koordinaten.html", title:"Schiffe versenken", tagline:"Im Koordinatensystem",
     icon:"⚓", color:"#2f6fa8", fach:["Mathematik"], form:"Duell zu zweit",
     stufen:[5,6], stufenText:"Klasse 5 (auch 6 zur Wiederholung)",
@@ -623,7 +655,7 @@ const STUFEN = [
   {id:"9-10", label:"9 – 10", test:(g)=>g.stufen.some(s=>s===9||s===10)},
   {id:"11-13",label:"11 – 13",test:(g)=>g.stufen.some(s=>s>=11)}
 ];
-const FORMEN = ["Kartenspiel","Domino","Team-Duell","Erklärspiel","Duell zu zweit"];
+const FORMEN = ["Kartenspiel","Domino","Team-Duell","Erklärspiel","Duell zu zweit","Rätsel"];
 const FAECHER = ["Mathematik","Physik"];
 
 const state = {fach:null, stufe:null, form:null, q:""};
