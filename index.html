@@ -322,7 +322,7 @@
   <header class="top">
     <div class="kicker">Mathematik &amp; Physik · fürs iPad</div>
     <h1>Spiele<b>·</b>Suite</h1>
-    <p>Achtzehn fertige Unterrichtsspiele – bis auf MotionTrace laufen alle offline im Browser, ohne Anmeldung und ohne Installation. Filtern, antippen, loslegen.</p>
+    <p>Einundzwanzig fertige Unterrichtsspiele – bis auf MotionTrace laufen alle offline im Browser, ohne Anmeldung und ohne Installation. Filtern, antippen, loslegen.</p>
     <div class="shareslot"></div>
   </header>
 
@@ -644,6 +644,57 @@ const GAMES = [
     keywords:"breakout escape room bedingte wahrscheinlichkeit bayes vierfeldertafel ableitung wendepunkt konfidenzintervall statistik datenkritik prozentpunkte"
   },
   {
+    file:"Breakout_Radioaktivitaet.html", title:"Breakout: Radioaktivität", tagline:"Sieben Stationen, sieben Codes",
+    icon:"☢️", color:"#3f8f5f", fach:["Physik"], form:"Breakout",
+    stufen:[10], stufenText:"Klasse 10",
+    sozial:"Allein, zu zweit oder in Kleingruppen am iPad",
+    thema:"Kernphysik: Strahlung, Zerfallsgesetz, Massendefekt, Dosis",
+    kurz:"Tschernobyl 1986 und Hiroshima 1945 – dieselbe Physik des Atomkerns. Sieben Stationen führen von der Messung mit dem Zählrohr bis zu der Frage, wie man dieses Wissen gesellschaftlich bewertet.",
+    ziel:"Jede Station gibt ihren dreistelligen Code erst her, wenn das Physikalische stimmt: Zählraten in der Sperrzone einordnen, α, β und γ nach Reichweite und Gefahr unterscheiden, das Zerfallsgesetz auf Jod, Cäsium und Uran anwenden, die Halbwertszeit aus einer Messkurve ablesen, den Massendefekt mit E = mc² auswerten und die Dosis in Sievert deuten.",
+    punkte:[
+      "Gesprochene Einführung über die Sprachausgabe des Geräts – oder überspringen",
+      "Station 1 ist ein Messexperiment: das Zählrohr schwankt zufällig, wie es echte Zerfälle tun",
+      "Station 6 verlangt eine schriftliche Beurteilung – Kernenergieausstieg oder Atombombe, begründet mit den Fachbegriffen aus den Stationen",
+      "Lehrer-Modus (Schlüssel oben rechts) zeigt alle Codes, Messwerte und didaktische Hinweise",
+      "Jede Station lässt sich ohne Lösung überspringen, wenn die Zeit knapp wird"
+    ],
+    keywords:"breakout escape room radioaktivität kernphysik zerfallsgesetz halbwertszeit alpha beta gamma massendefekt sievert dosis tschernobyl zählrohr"
+  },
+  {
+    file:"luegen-labor.html", title:"Das Lügen-Labor", tagline:"Teil 1: Diagramm-Tricks entlarven",
+    icon:"🧪", color:"#2a8f98", fach:["Mathematik"], form:"Breakout",
+    stufen:[6], stufenText:"Klasse 6",
+    sozial:"Allein, zu zweit oder in Kleingruppen am iPad",
+    thema:"Diagramme lesen und Verzerrungen erkennen",
+    kurz:"Dr. Schummel hängt in neun Räumen seine besten Werke auf: Diagramme, die winzige Unterschiede riesig wirken lassen. Wer den Trick findet, bekommt einen Buchstaben seines Geheimcodes.",
+    ziel:"Jeder Raum zeigt denselben Datensatz zweimal – so wie Dr. Schummel ihn zeigt und so, wie er ehrlich aussähe. Der Schieberegler macht sichtbar, wie die Täuschung entsteht: abgeschnittene Achse, verdoppelte Fläche, gekipptes Kreisdiagramm, ungleichmäßige Einteilung, umgedrehte Achse, herausgepickter Ausschnitt, absolute statt relative Zahlen.",
+    punkte:[
+      "Drei Ebenen: vier Schauräume, vier Räume im Geheimlabor, dazu der Meister-Raum",
+      "Jeder gelöste Raum liefert einen Buchstaben; vier davon öffnen die nächste Tür",
+      "Im Finale ein Zahlenschloss – und der gemeinste Trick: Quote gegen absolute Trefferzahl",
+      "Abgefangene Nachrichten als Tipp, wenn eine Gruppe feststeckt",
+      "Uhr läuft mit; Teil 2 ist die <b>Diagramm-Werkstatt</b>, in der die Klasse selbst täuscht"
+    ],
+    keywords:"lügen labor diagramme täuschung manipulation achse abgeschnitten 3d kreisdiagramm ausschnitt daten breakout escape room prozent statistik werkstatt teil 1"
+  },
+  {
+    file:"luegen-werkstatt.html", title:"Die Diagramm-Werkstatt", tagline:"Teil 2: selbst täuschen und entlarven",
+    icon:"📊", color:"#0e7c86", fach:["Mathematik"], form:"Werkstatt",
+    stufen:[6], stufenText:"Klasse 6",
+    sozial:"Gruppenarbeit am iPad, danach Vorführung vor der Klasse",
+    thema:"Diagramme gestalten und Verzerrungen durchschauen",
+    kurz:"Jetzt sind die Kinder die Trickser. Zu fünf Datensätzen gibt es je ein Manipulationsziel – ein Eindruck, den das Diagramm erzeugen soll, obwohl die Zahlen etwas anderes sagen.",
+    ziel:"In der Werkstatt stellen die Gruppen Achse, Ausschnitt, Seitenverhältnis und Darstellung so ein, bis die Vorschau den gewünschten falschen Eindruck macht; eine Rückmeldung sagt, ob es schon reicht. In der Präsentation zeigt jede Gruppe ihr Werk, die anderen tippen die benutzten Tricks aus zehn Karten – die Auflösung stellt Lüge und ehrliche Darstellung nebeneinander.",
+    punkte:[
+      "Fünf Datensätze: Sportverein, Schwimmbad-Preis, Lieblingsfach, Bücherei, Mathe-Quiz",
+      "Nicht jeder Trick wirkt überall – ein Kreisdiagramm kann keinen Verlauf zeigen, und zwei Tricks heben sich manchmal gegenseitig auf",
+      "Tipp-Klappe je Datensatz, wenn eine Gruppe nicht weiterkommt",
+      "Die Diagramme bleiben auf dem Gerät gespeichert und stehen in der Vorführung bereit",
+      "Teil 1 ist das <b>Lügen-Labor</b> – dort werden dieselben Tricks erst einmal entlarvt"
+    ],
+    keywords:"diagramm werkstatt täuschen entlarven manipulation achse seitenverhältnis kreisdiagramm quote absolut daten darstellen prozent gruppenarbeit präsentation lügen labor teil 2"
+  },
+  {
     file:"schiffe-versenken-koordinaten.html", title:"Schiffe versenken", tagline:"Im Koordinatensystem",
     icon:"⚓", color:"#2f6fa8", fach:["Mathematik"], form:"Duell zu zweit",
     stufen:[5,6], stufenText:"Klasse 5 (auch 6 zur Wiederholung)",
@@ -689,7 +740,7 @@ const STUFEN = [
   {id:"9-10", label:"9 – 10", test:(g)=>g.stufen.some(s=>s===9||s===10)},
   {id:"11-13",label:"11 – 13",test:(g)=>g.stufen.some(s=>s>=11)}
 ];
-const FORMEN = ["Kartenspiel","Domino","Team-Duell","Erklärspiel","Duell zu zweit","Rätsel","Breakout"];
+const FORMEN = ["Kartenspiel","Domino","Team-Duell","Erklärspiel","Duell zu zweit","Rätsel","Breakout","Werkstatt"];
 const FAECHER = ["Mathematik","Physik"];
 
 const state = {fach:null, stufe:null, form:null, q:""};

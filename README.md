@@ -1,6 +1,6 @@
 # Spiele-Suite – Mathematik & Physik
 
-Achtzehn Unterrichtsspiele für das iPad, zusammengefasst auf einer Startseite.
+Einundzwanzig Unterrichtsspiele für das iPad, zusammengefasst auf einer Startseite.
 Alle Spiele sind **einzelne HTML-Dateien ohne externe Abhängigkeiten**: kein Server,
 keine Anmeldung, keine Internetverbindung nötig. Einmal geladen, laufen sie offline.
 Einzige Ausnahme ist **MotionTrace**: Es braucht Kamera und Internet, weil die
@@ -28,6 +28,9 @@ Bewegungserkennung ihr Modell beim Start nachlädt.
 | [Geometrische Schatzsuche](Schatzsuche.html) | 7 | Konstruktionen und geometrische Örter | Rätsel, allein oder zu zweit |
 | [Das Vogt-Vermächtnis](vogt-vermaechtnis.html) | 10 | exponentielles Wachstum, Zerfall und Logarithmus | Breakout, allein bis Kleingruppe |
 | [Operation DataTruth](operation-datatruth.html) | 11 | bedingte Wahrscheinlichkeit, Ableitungen, Datenkritik | Breakout, allein bis Kleingruppe |
+| [Breakout: Radioaktivität](Breakout_Radioaktivitaet.html) | 10 | Kernphysik: Strahlung, Zerfallsgesetz, Massendefekt, Dosis | Breakout, allein bis Kleingruppe |
+| [Das Lügen-Labor](luegen-labor.html) | 6 | Diagramm-Tricks entlarven (Teil 1) | Breakout, allein bis Kleingruppe |
+| [Die Diagramm-Werkstatt](luegen-werkstatt.html) | 6 | selbst täuschen und entlarven (Teil 2) | Werkstatt, Gruppen + Vorführung |
 | [Schiffe versenken](schiffe-versenken-koordinaten.html) | 5 | Koordinaten setzen und ablesen | Duell zu zweit oder gegen den Computer |
 | [Raumschiffe versenken](raumschiffe-versenken.html) | Oberstufe | räumliches Koordinatensystem, Punkte und Vektoren | Duell zu zweit oder gegen den Computer |
 
