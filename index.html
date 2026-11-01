@@ -322,7 +322,7 @@
   <header class="top">
     <div class="kicker">Mathematik &amp; Physik · fürs iPad</div>
     <h1>Spiele<b>·</b>Suite</h1>
-    <p>Sechzehn fertige Unterrichtsspiele – bis auf MotionTrace laufen alle offline im Browser, ohne Anmeldung und ohne Installation. Filtern, antippen, loslegen.</p>
+    <p>Achtzehn fertige Unterrichtsspiele – bis auf MotionTrace laufen alle offline im Browser, ohne Anmeldung und ohne Installation. Filtern, antippen, loslegen.</p>
     <div class="shareslot"></div>
   </header>
 
@@ -610,6 +610,40 @@ const GAMES = [
     keywords:"schatzsuche konstruktion zirkel lineal mittelsenkrechte winkelhalbierende lot parallele geometrischer ort rätsel"
   },
   {
+    file:"vogt-vermaechtnis.html", title:"Das Vogt-Vermächtnis", tagline:"Sechs Notizen, ein Tresor",
+    icon:"🗄️", color:"#9a7b46", fach:["Mathematik"], form:"Breakout",
+    stufen:[10], stufenText:"Klasse 10",
+    sozial:"Allein, zu zweit oder in Kleingruppen am iPad",
+    thema:"Exponentielles Wachstum, Zerfall und Logarithmus",
+    kurz:"Dr. Vogt ist verschwunden und hinterlässt sechs versiegelte Forschungsnotizen. Jede gibt ihren Teilcode erst heraus, wenn die Rechnung darin stimmt – alle sechs zusammen öffnen den Tresor.",
+    ziel:"Die sechs Notizen zeigen dieselbe Mathematik von sechs Seiten: radioaktiver Zerfall, Zinseszins, Bevölkerungswachstum, Kettennachricht, Laborprotokoll und Ausbreitungskurve. Jede Station fragt erst die Rechnung und dann die Deutung – ein Schritt <b>Einordnen &amp; Beurteilen</b> gehört überall dazu.",
+    punkte:[
+      "Reihenfolge frei wählbar; der Aktenschrank zeigt, welche Notizen schon offen sind",
+      "Die Teilcodes ergeben sich aus den Ergebnissen – falsch gerechnet heißt kein Code",
+      "Die Bonusaufgabe in Notiz 04 schaltet einen Joker frei, der eine Notiz überspringt",
+      "Fortschritt lässt sich als kurze Zeichenfolge sichern und auf einem anderen Gerät laden",
+      "Lehrkraft-Übersicht mit dem Stand aller Notizen, nach Schlüsseleingabe auch mit allen Lösungen"
+    ],
+    keywords:"breakout escape room exponentialfunktion wachstum zerfall halbwertszeit logarithmus zinseszins prognose tresor code vogt"
+  },
+  {
+    file:"operation-datatruth.html", title:"Operation DataTruth", tagline:"Vier Statistiken, vier Denkfehler",
+    icon:"🔍", color:"#d08b1e", fach:["Mathematik"], form:"Breakout",
+    stufen:[11], stufenText:"Klasse 11",
+    sozial:"Allein, zu zweit oder in Kleingruppen am iPad",
+    thema:"Bedingte Wahrscheinlichkeit, Ableitungen und Datenkritik",
+    kurz:"Vier öffentlich kursierende Statistiken sind richtig gerechnet und trotzdem irreführend. Wer den Denkfehler mit Mathematik freilegt, erhält den Codeschlüssel zur nächsten Akte.",
+    ziel:"Die vier Räume zeigen, wo Zahlen täuschen: P(A|B) gegen P(B|A), eine Trendaussage am Wendepunkt geprüft, ein Gruppenunterschied, der sich durch die Altersstruktur erklärt, und eine Umfrage mit 52 % samt Konfidenzintervall. Jeder Raum endet mit einer Bewertung, nicht nur mit einer Zahl.",
+    punkte:[
+      "Raum 1: Vierfeldertafel – die Zahl stimmt, die Schlussfolgerung nicht",
+      "Raum 2: f'(t) und f''(t) prüfen die Behauptung „steigt immer langsamer“",
+      "Raum 3: Konfundierung – der Unterschied schrumpft, sobald man altersbereinigt rechnet",
+      "Raum 4: Konfidenzintervall, Trendableitung und eine Kombinationsaufgabe als Finale",
+      "Gesprochenes Auftakt-Briefing, Spieluhr, Hinweise auf Knopfdruck, Lehrermodus mit allen Lösungen"
+    ],
+    keywords:"breakout escape room bedingte wahrscheinlichkeit bayes vierfeldertafel ableitung wendepunkt konfidenzintervall statistik datenkritik prozentpunkte"
+  },
+  {
     file:"schiffe-versenken-koordinaten.html", title:"Schiffe versenken", tagline:"Im Koordinatensystem",
     icon:"⚓", color:"#2f6fa8", fach:["Mathematik"], form:"Duell zu zweit",
     stufen:[5,6], stufenText:"Klasse 5 (auch 6 zur Wiederholung)",
@@ -655,7 +689,7 @@ const STUFEN = [
   {id:"9-10", label:"9 – 10", test:(g)=>g.stufen.some(s=>s===9||s===10)},
   {id:"11-13",label:"11 – 13",test:(g)=>g.stufen.some(s=>s>=11)}
 ];
-const FORMEN = ["Kartenspiel","Domino","Team-Duell","Erklärspiel","Duell zu zweit","Rätsel"];
+const FORMEN = ["Kartenspiel","Domino","Team-Duell","Erklärspiel","Duell zu zweit","Rätsel","Breakout"];
 const FAECHER = ["Mathematik","Physik"];
 
 const state = {fach:null, stufe:null, form:null, q:""};
