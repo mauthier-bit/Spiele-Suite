@@ -15,6 +15,12 @@
   --qx: #2a5bd7;   /* Ort */
   --qv: #0f8458;   /* Geschwindigkeit */
   --qa: #cc5a14;   /* Beschleunigung */
+  /* Intervallstreifen: Hier zaehlt nicht, welche Groesse abgelesen wird, sondern welches
+     Vorzeichen sie hat. Aus v abgelesen (Monotonie von x, Vorzeichen von v): blau vorwaerts
+     bzw. steigend, orange rueckwaerts bzw. fallend. Aus a abgelesen (Kruemmung von x,
+     Monotonie von v, Vorzeichen von a): gruen und rot. */
+  --iv1plus: #1f55d0;  --iv1minus: #d2690a;
+  --iv2plus: #0c8a4e;  --iv2minus: #c7182e;
   --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --font-data: ui-monospace, Menlo, Consolas, monospace;
 }
@@ -38,13 +44,13 @@ body:not(.imRahmen) .bar { padding-right: 128px; }
 h1 { font-size: 1.1rem; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
 /* Die Knoepfe der Tafel (Bild, Teilen) sehen aus wie die uebrigen Knoepfe des Werkzeugs. */
 #shotBtns button, #teilenBtn button { font-size: 0.87rem; }
-/* kleiner Hinweisbalken - in der Tafel kommt er von shot.js, hier gehoert er dazu */
+#teilenBtn button { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+/* Kurze Rueckmeldung am unteren Rand - in der Tafel macht das TafelShot.toast. */
 #hinweisBalken { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom));
   transform: translateX(-50%) translateY(14px); background: #1f2937; color: #fff; border-radius: 12px;
   padding: 11px 18px; font-size: 1rem; font-weight: 650; z-index: 9100; opacity: 0;
   transition: .2s; pointer-events: none; max-width: 90vw; text-align: center; }
 #hinweisBalken.an { opacity: 1; transform: translateX(-50%) translateY(0); }
-#teilenBtn button { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .status { color: var(--muted); font-size: 0.85rem; font-family: var(--font-data); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .status.sample { color: var(--qa); }
 .group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -65,7 +71,8 @@ button:disabled { opacity: 0.45; cursor: default; }
 .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
 .seg button { border: 0; border-radius: 0; border-right: 1px solid var(--line); }
 .seg button:last-child { border-right: 0; }
-.seg button[aria-pressed="true"], .chip[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
+.seg button[aria-pressed="true"], .chip[aria-pressed="true"],
+#zielMal[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); }
 .chip { display: inline-flex; align-items: center; gap: 6px; }
 .chip .sw { width: 10px; height: 10px; border-radius: 50%; background: currentColor; opacity: 0.35; }
 .chip[aria-pressed="true"] .sw { opacity: 1; }
@@ -87,12 +94,36 @@ details.settings summary::-webkit-details-marker { display: none; }
 
 /* Bühne */
 .stage { display: grid; gap: 10px; min-height: 0; }
-.mode-1d .stage { grid-template-rows: minmax(150px, 26%) minmax(0, 1fr); }
+/* Das waagerechte Lineal liegt oben am Rand und unter ihm steht nichts mehr, darum darf
+   das Aufnahmefeld flach sein - der gewonnene Platz gehoert den Diagrammen. */
+.mode-1d .stage { grid-template-rows: minmax(120px, 18%) minmax(0, 1fr); }
 .mode-1d.lane .stage { grid-template-rows: minmax(260px, 50%) minmax(0, 1fr); }
-.mode-2d .stage { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); }
+/* 2D: Zwischen Zeichenflaeche und Diagrammen liegt ein Balken, den man ziehen kann;
+   --split sagt, wie viel Platz die Zeichenflaeche bekommt. */
+.mode-2d .stage { grid-template-columns: minmax(90px, var(--split, 44%)) 6px minmax(90px, 1fr); gap: 10px 4px; }
+.split { display: none; }
+.mode-2d .split { display: block; position: relative; cursor: col-resize; touch-action: none; }
+.mode-2d .split::before { content: ""; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 3px; height: 44px; border-radius: 2px; background: var(--line); }
+/* der Balken ist schmal, die Trefferflaeche fuer den Finger bleibt breit */
+.mode-2d .split::after { content: ""; position: absolute; inset: 0 -9px; }
+.mode-2d .split:hover::before, .mode-2d .split.zieht::before { background: var(--muted); }
 /* y-Aufnahme: Das Aufnahmefeld steht senkrecht links neben den Diagrammen. */
 .mode-1d.senk .stage { grid-template-columns: minmax(104px, 15%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 .mode-1d.senk.lane .stage { grid-template-columns: minmax(146px, 22%) minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+/* Wo das Aufnahmefeld liegt, sagt die Einstellung (state.padPos): "hinter den Diagrammen"
+   heisst unten (waagerechte Aufnahme) bzw. rechts (senkrechte Aufnahme und 2D). Von Haus aus
+   liegt es davor; im Ziel-Modus rueckt es automatisch dahinter, damit die Hand nicht auf der
+   Zielkurve liegt, die gerade nachgefahren wird. Im Battle gilt das nicht - dort stehen
+   ohnehin beide Felder an den Fensterraendern. */
+/* Die Reihenfolge muss vollstaendig sein: In 2D liegt zwischen beiden noch der Teiler,
+   sonst rutschte er in die Spur des Aufnahmefeldes. */
+.padHinten .plotWrap { order: 1; } .padHinten .split { order: 2; } .padHinten .padWrap { order: 3; }
+.mode-1d.padHinten:not(.senk) .stage { grid-template-rows: minmax(0, 1fr) minmax(120px, 18%); }
+.mode-1d.padHinten.lane:not(.senk) .stage { grid-template-rows: minmax(0, 1fr) minmax(260px, 50%); }
+.mode-1d.padHinten.senk .stage { grid-template-columns: minmax(0, 1fr) minmax(104px, 15%); }
+.mode-1d.padHinten.senk.lane .stage { grid-template-columns: minmax(0, 1fr) minmax(146px, 22%); }
+.mode-2d.padHinten .stage { grid-template-columns: minmax(90px, 1fr) 6px minmax(90px, var(--split, 44%)); }
 /* Battle: je ein Aufnahmefeld am linken und am rechten Fensterrand, Diagramme dazwischen */
 .mode-1d.battle .stage { grid-template-columns: minmax(104px, 14%) minmax(0, 1fr) minmax(104px, 14%); grid-template-rows: minmax(0, 1fr); }
 .mode-1d.battle .padWrap { display: none; }
@@ -102,19 +133,28 @@ details.settings summary::-webkit-details-marker { display: none; }
 /* im Spielmodus (Ziel/Battle) gehoeren Stellen, Intervall und Vektoren nicht zur Aufgabe */
 .app.spiel .nurAufnahme { display: none; }
 @media (orientation: portrait) {
-  .mode-2d .stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(220px, 40%) minmax(0, 1fr); }
+  .mode-2d .stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(120px, var(--split, 40%)) 6px minmax(0, 1fr); gap: 4px 10px; }
+  /* im Hochformat liegen sie uebereinander - "hinter den Diagrammen" heisst dann unten */
+  .mode-2d.padHinten .stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) 6px minmax(120px, var(--split, 40%)); }
+  .mode-2d .split { cursor: row-resize; }
+  .mode-2d .split::before { width: 44px; height: 3px; }
+  .mode-2d .split::after { inset: -9px 0; }
 }
 .padWrap { position: relative; min-height: 0; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 #pad { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .hint { position: absolute; left: 14px; top: 10px; right: 14px; margin: 0; font-size: 0.85rem; color: var(--muted); pointer-events: none; line-height: 1.35; }
 /* in der schmalen, senkrechten Spalte bleibt fuer den Hinweis nur wenig Platz */
 .mode-1d.senk .hint { left: 8px; right: 8px; font-size: 0.76rem; line-height: 1.25; }
+/* 1D waagerecht: Das Lineal liegt oben - der Hinweis rutscht an den unteren Rand. */
+.mode-1d:not(.senk) .hint { top: auto; bottom: 7px; }
 .plotWrap { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 8px; min-height: 0; min-width: 0; }
 .plotBox { position: relative; min-height: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 #plots { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; user-select: none; -webkit-user-select: none; }
 /* Rechts an jedem Diagramm steht, was dort zu sehen sein soll - sonst gilt ein Schalter
-   oben fuer alle drei Diagramme und das Bild wird unuebersichtlich. Jeder Knopf traegt die
-   Farbe der Groesse, die er sichtbar macht (Tangente in x(t) -> v, Flaeche unter v(t) -> x). */
+   oben fuer alle drei Diagramme und das Bild wird unuebersichtlich. Die Knoepfe fuer Tangente
+   und Flaeche tragen die Farbe der Groesse, die sie sichtbar machen (Tangente in x(t) -> v,
+   Flaeche unter v(t) -> x). Die Knoepfe fuer die Intervalle tragen beide Farben ihres
+   Streifens, denn dort steht die Farbe fuer das Vorzeichen, nicht fuer die Groesse. */
 .diaCtl { position: absolute; inset: 0; pointer-events: none; }
 .diaCtl[hidden] { display: none; }
 .diaCtl .grp { position: absolute; display: flex; flex-direction: column; gap: 4px; pointer-events: auto; }
@@ -128,6 +168,12 @@ details.settings summary::-webkit-details-marker { display: none; }
 .diaCtl .bgX[aria-pressed="true"] { background: var(--qx); border-color: var(--qx); }
 .diaCtl .bgV[aria-pressed="true"] { background: var(--qv); border-color: var(--qv); }
 .diaCtl .bgA[aria-pressed="true"] { background: var(--qa); border-color: var(--qa); }
+.diaCtl .bgD1[aria-pressed="true"] { background: linear-gradient(90deg, var(--iv1plus) 50%, var(--iv1minus) 50%); border-color: var(--iv1minus); }
+.diaCtl .bgD2[aria-pressed="true"] { background: linear-gradient(90deg, var(--iv2plus) 50%, var(--iv2minus) 50%); border-color: var(--iv2minus); }
+/* Knoepfe, die nur ihr Zeichen tragen: Was sie tun, steht im Titel und im aria-label. */
+button.ic, details.settings summary.ic { min-width: 38px; padding: 0 8px; text-align: center; justify-content: center; font-size: 1.02rem; line-height: 1; }
+/* das Zahnrad ist in der Schrift ein kleines Zeichen und braucht etwas mehr */
+details.settings summary.ic { font-size: 1.2rem; }
 /* Die Tabelle nimmt hoechstens vier Zeilen ein, alles weitere wird gescrollt - sonst
    schrumpfen die Diagramme, sobald mehrere Stellen gemerkt sind. Die Hoehe rechnet
    readoutHoehe() aus, weil die Zeilen mit A- / A+ wachsen. */
@@ -150,6 +196,8 @@ details.settings summary::-webkit-details-marker { display: none; }
 .erg .sieg { font-weight: 700; color: var(--ink); }
 .cx { color: var(--qx); } .cv { color: var(--qv); } .ca { color: var(--qa); }
 .badge { display: inline-block; min-width: 1.4em; text-align: center; border-radius: 4px; background: var(--ink); color: var(--surface); padding: 0 4px; }
+/* Das Zeichen der Intervallzeile traegt selbst die beiden Farben - kein dunkler Grund. */
+.badge.iv2 { background: none; padding: 0; font-weight: 700; letter-spacing: 1px; }
 
 @media (max-width: 640px) {
   body { overflow: auto; }
@@ -158,11 +206,199 @@ details.settings summary::-webkit-details-marker { display: none; }
   .mode-1d.senk .stage { grid-template-columns: minmax(96px, 24%) minmax(0, 1fr); grid-template-rows: 560px; }
   .mode-1d.battle .stage { grid-template-columns: minmax(84px, 1fr) minmax(0, 1.8fr) minmax(84px, 1fr); grid-template-rows: 560px; }
   .mode-1d.senk.lane .stage { grid-template-columns: minmax(130px, 32%) minmax(0, 1fr); grid-template-rows: 560px; }
+  .mode-1d.padHinten:not(.senk) .stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: 560px 200px; }
+  .mode-1d.padHinten.senk .stage { grid-template-columns: minmax(0, 1fr) minmax(96px, 24%); }
+  .mode-1d.padHinten.senk.lane .stage { grid-template-columns: minmax(0, 1fr) minmax(130px, 32%); }
+  /* schmales Fenster: alles untereinander mit fester Hoehe - da gibt es nichts zu teilen */
   .mode-2d .stage { grid-template-rows: 300px 560px; }
+  .mode-2d.padHinten .stage { grid-template-columns: minmax(0, 1fr); grid-template-rows: 560px 300px; }
+  .mode-2d .split { display: none; }
   .slider input { width: 100px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
+<script>
+/* Scharfe Kante unter der iPadOS-Statusleiste (iPadOS 26/27).
+   WebKit legt in Web-Apps vom Homebildschirm am oberen Rand sonst einen
+   weichen Verlauf ueber den Inhalt. Er entfaellt, wenn dort eine deckende
+   Leiste liegt - ein bildschirmfuellender Kasten genuegt nicht (am
+   13.10.2026 auf iPadOS 27 geprueft). Das Skript legt deshalb einen 16 px
+   hohen, deckenden Streifen an den oberen Rand und rueckt alles, was in
+   diese 16 px hineinragt, um 16 px nach unten. Laeuft nur in der App vom
+   Homebildschirm, nicht in Safari und nicht in einem Rahmen; mit #kante in
+   der Adresse laesst es sich zum Pruefen erzwingen. */
+(function(){
+  if(window.top!==window) return;
+  var pruef=/kante/i.test(location.hash||'');
+  var alsApp=(navigator.standalone===true) ||
+             (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  if(!alsApp && !pruef) return;
+
+  var HOCH=16;
+  function leer(f){ return !f || f==='transparent' || f.replace(/\s/g,'')==='rgba(0,0,0,0)'; }
+  function seite(){
+    var s=getComputedStyle(document.body), f=s.backgroundColor, b=s.backgroundImage;
+    if(leer(f) && (!b || b==='none')){
+      s=getComputedStyle(document.documentElement); f=s.backgroundColor; b=s.backgroundImage;
+    }
+    return { farbe: leer(f) ? '#ffffff' : f, bild: (b && b!=='none') ? b : '' };
+  }
+  /* Faerbt dieses Element am oberen Rand etwas sichtbar ein? */
+  function tinte(n){
+    var r=n.getBoundingClientRect();
+    if(r.top>=HOCH || r.bottom<=0 || r.width<=0) return false;
+    var s=getComputedStyle(n);
+    if(s.display==='none' || s.visibility==='hidden' || s.opacity==='0') return false;
+    if(n.id==='randKante') return false;
+    var t=n.tagName.toLowerCase();
+    if(t==='img'||t==='svg'||t==='canvas'||t==='video') return true;
+    if(!leer(s.backgroundColor) || s.backgroundImage!=='none') return true;
+    if(parseFloat(s.borderTopWidth)>0) return true;
+    var kn=n.childNodes;
+    for(var j=0;j<kn.length;j++)
+      if(kn[j].nodeType===3 && kn[j].nodeValue.replace(/\s/g,'')) return true;
+    for(var i=0;i<n.children.length;i++) if(tinte(n.children[i])) return true;
+    return false;
+  }
+  function ragtRein(z){
+    for(var i=0;i<z.children.length;i++) if(tinte(z.children[i])) return true;
+    return false;
+  }
+  function luft(z){
+    if(z.dataset.kanteLuft) return;
+    if(!ragtRein(z) && !tinte(z)) return;    /* noch nichts oben - spaeter nochmal */
+    z.dataset.kanteLuft='1';
+    var p=parseFloat(getComputedStyle(z).paddingTop)||0;
+    if(p>=HOCH) return;
+    z.style.paddingTop=(p+HOCH)+'px';
+  }
+  function sichtbar(n,s){
+    return s.display!=='none' && s.visibility!=='hidden' && n.id!=='randKante';
+  }
+  /* bildschirmfuellende fixierte Kaesten */
+  function kaesten(){
+    var alle=document.querySelectorAll('body > *, body > * > *'), raus=[];
+    for(var i=0;i<alle.length;i++){
+      var n=alle[i], s=getComputedStyle(n);
+      if(s.position!=='fixed' || !sichtbar(n,s)) continue;
+      var r=n.getBoundingClientRect();
+      if(r.top<=4 && r.width>=innerWidth*0.9 && r.height>=innerHeight*0.9) raus.push(n);
+    }
+    return raus;
+  }
+  /* Leisten am oberen Rand (fixiert oder klebend, aber kein Vollbildkasten) */
+  function leisten(){
+    var alle=document.querySelectorAll('body > *, body > * > *'), raus=[];
+    for(var i=0;i<alle.length;i++){
+      var n=alle[i], s=getComputedStyle(n);
+      if((s.position!=='fixed' && s.position!=='sticky') || !sichtbar(n,s)) continue;
+      var r=n.getBoundingClientRect();
+      if(r.top<=4 && r.width>=innerWidth*0.8 && r.height>=6 && r.height<=innerHeight*0.6) raus.push(n);
+    }
+    return raus;
+  }
+  /* Liegt oben schon eine deckende Leiste, ist nichts zu tun. */
+  function schonGut(){
+    var st=document.elementsFromPoint ? document.elementsFromPoint(Math.round(innerWidth/2),2) : [];
+    for(var i=0;i<st.length;i++){
+      var n=st[i];
+      if(n.id==='randKante') continue;
+      if(n===document.body || n===document.documentElement) return false;
+      var s=getComputedStyle(n), r=n.getBoundingClientRect();
+      return (s.position==='fixed'||s.position==='sticky') && r.top<=4 &&
+             r.width>=innerWidth*0.8 && r.height>=6 && r.height<=innerHeight*0.6 &&
+             !leer(s.backgroundColor);
+    }
+    return false;
+  }
+  var band=null;
+  function streifen(farbe){
+    if(!band){
+      band=document.createElement('div');
+      band.id='randKante'; band.setAttribute('aria-hidden','true');
+      band.style.cssText='position:fixed;left:0;top:0;width:100%;height:'+HOCH+'px;'+
+        'z-index:2147483646;pointer-events:none';
+      document.body.appendChild(band);
+    }
+    band.style.display='block';
+    if(farbe){
+      band.style.backgroundColor=farbe;
+      band.style.backgroundImage='none';
+      return;
+    }
+    var s=getComputedStyle(document.body), h=seite();
+    band.style.backgroundColor=h.farbe;
+    band.style.backgroundImage=h.bild||'none';
+    band.style.backgroundAttachment='fixed';
+    if(h.bild && s.backgroundAttachment!=='fixed')
+      band.style.backgroundSize='100% '+Math.max(innerHeight,document.body.scrollHeight)+'px';
+  }
+  var schild=null;
+  function zeigen(txt){
+    if(!pruef) return;
+    if(!schild){
+      schild=document.createElement('div');
+      schild.style.cssText='position:fixed;left:6px;bottom:52px;z-index:2147483647;max-width:92%;'+
+        'padding:6px 9px;border-radius:8px;background:#ffe600;color:#000;'+
+        'font:600 12px/1.35 -apple-system,sans-serif;white-space:pre-wrap;pointer-events:none';
+      document.body.appendChild(schild);
+    }
+    schild.textContent='Kante K6 · '+innerWidth+'x'+innerHeight+'\n'+txt;
+  }
+  function name(n){
+    if(n.id) return '#'+n.id;
+    var c=(typeof n.className==='string'&&n.className.trim())?'.'+n.className.trim().split(/\s+/)[0]:'';
+    return n.tagName.toLowerCase()+c;
+  }
+  function malen(){
+    var b=document.body; if(!b) return;
+    if(schonGut()){
+      if(band) band.style.display='none';
+      zeigen('oben liegt schon eine deckende Leiste');
+      return;
+    }
+    var k=kaesten(), l=leisten(), h=null, farbe=null, text=[];
+    for(var i=0;i<k.length;i++){
+      var z=k[i], s=getComputedStyle(z);
+      if(!z.dataset.kante){
+        if(leer(s.backgroundColor)){
+          if(!h) h=seite();
+          z.style.backgroundColor=h.farbe;
+          if(s.backgroundImage==='none' && h.bild) z.style.backgroundImage=h.bild;
+        }
+        z.dataset.kante='1';
+        s=getComputedStyle(z);
+      }
+      luft(z);
+      text.push(name(z)+' bg='+s.backgroundColor+(s.backgroundImage!=='none'?'+Verlauf':''));
+    }
+    for(var j=0;j<l.length;j++){
+      var le=l[j], sl=getComputedStyle(le);
+      if(!tinte(le) && !ragtRein(le)) continue;
+      if(!farbe && !leer(sl.backgroundColor)) farbe=sl.backgroundColor;
+      luft(le);
+      text.push('Leiste '+name(le)+' bg='+sl.backgroundColor);
+    }
+    if(!k.length && !l.length){ luft(b); text.push('kein Kasten, nur Streifen'); }
+    streifen(farbe);
+    zeigen(text.join('\n'));
+  }
+  var warte=null;
+  function spaeter(){
+    if(warte) return;
+    warte=setTimeout(function(){ warte=null; malen(); },200);
+  }
+  try{
+    new MutationObserver(spaeter).observe(document.documentElement,
+      {childList:true, subtree:true, attributes:true, attributeFilter:['class','style','hidden']});
+  }catch(e){}
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',malen);
+  else malen();
+  addEventListener('load',spaeter);
+  addEventListener('resize',spaeter);
+  addEventListener('orientationchange',spaeter);
+})();
+</script>
 <script>
 /* Scharfe Kante unter der iPadOS-Statusleiste (iPadOS 26/27).
    WebKit legt in Web-Apps vom Homebildschirm am oberen Rand sonst einen
@@ -386,7 +622,10 @@ details.settings summary::-webkit-details-marker { display: none; }
         <option value="15">15 s</option>
         <option value="20">20 s</option>
         <option value="30">30 s</option>
+        <option value="frei">frei …</option>
       </select>
+      <input type="number" id="zielTFrei" min="1" max="300" step="1" value="5" hidden
+             style="width: 5em" aria-label="Dauer in Sekunden" title="Dauer der Zielkurve in Sekunden">
       <button id="zielMal" aria-pressed="false" title="Die Zielkurve mit dem Finger in das Diagramm ziehen">✎ zeichnen</button>
       <button id="zielWeg" title="Die Zielkurve entfernen">Ziel weg</button>
       <button id="btStart" class="primary" hidden title="Countdown – danach nehmen beide Felder gleichzeitig auf">▶ Countdown</button>
@@ -407,6 +646,7 @@ details.settings summary::-webkit-details-marker { display: none; }
     <div class="group nurAufnahme" role="group" aria-label="Einblenden">
       <button class="chip" id="tStellen" aria-pressed="true"><span class="sw"></span>Stellen</button>
       <button class="chip" id="tVec" aria-pressed="false" title="An jedem Messpunkt die Pfeile für v und a"><span class="sw ca"></span>Vektoren</button>
+      <button class="chip" id="tTab" aria-pressed="false" title="Die Ablesetabelle unter den Diagrammen zeigen"><span class="sw"></span>Tabelle</button>
     </div>
 
     <div class="group nurAufnahme">
@@ -418,20 +658,30 @@ details.settings summary::-webkit-details-marker { display: none; }
     </div>
 
     <div class="group">
-      <button id="play" class="primary" title="Die Bewegung noch einmal ablaufen lassen">▶ Abspielen</button>
+      <button id="play" class="primary ic" title="Abspielen: die Bewegung noch einmal ablaufen lassen" aria-label="Abspielen">▶</button>
       <select id="speed" aria-label="Abspielgeschwindigkeit">
         <option value="1">1×</option>
         <option value="0.5">0,5×</option>
         <option value="0.25">0,25×</option>
+        <option value="0.1">0,1×</option>
       </select>
-      <button id="undo" disabled>Vorherige</button>
+      <button id="undo" class="ic" disabled title="Vorherige Aufnahme zurückholen" aria-label="Vorherige Aufnahme">↺</button>
+      <button id="reset" class="ic" title="Zurücksetzen: Aufnahme und Zielkurve verwerfen" aria-label="Zurücksetzen">🗑</button>
       <details class="settings tafelEdit">
-        <summary>Einstellungen</summary>
+        <summary class="ic" title="Einstellungen" aria-label="Einstellungen">⚙</summary>
         <div class="panel">
           <label for="ppc">Maßstab: Pixel pro Zentimeter
             <input type="number" id="ppc" min="10" max="200" step="0.1" value="52">
           </label>
           <p>iPad: ca. 52 px/cm (iPad mini ca. 64). Prüfe mit einem Lineal, ob die Skala im Aufnahmefeld echte Zentimeter zeigt, und passe den Wert an.</p>
+          <label for="padPos">Wo das Aufnahmefeld liegt
+            <select id="padPos">
+              <option value="auto">automatisch</option>
+              <option value="vor">oben bzw. links</option>
+              <option value="hinter">unten bzw. rechts</option>
+            </select>
+          </label>
+          <p>Bei <b>x →</b> liegt das Feld über oder unter den Diagrammen, bei <b>y ↑</b> und in <b>2D</b> links oder rechts daneben (im Hochformat darüber oder darunter). <b>Automatisch</b> heißt: bei <b>Aufnahme</b> davor, im <b>Ziel</b>-Modus dahinter – dort liegt die Hand sonst auf der Zielkurve. Im <b>Battle</b> stehen die beiden Felder immer an den Fensterrändern.</p>
           <label for="strobe">Zeitabstand der Messpunkte im Aufnahmefeld
             <select id="strobe">
               <option value="0.02">0,02 s</option>
@@ -477,22 +727,28 @@ details.settings summary::-webkit-details-marker { display: none; }
   <main class="stage">
     <section class="padWrap" aria-label="Aufnahmefeld">
       <canvas id="pad"></canvas>
-      <p class="hint" id="hint">Finger auflegen und bewegen. Aufgezeichnet wird, solange der Finger aufliegt (nur die waagerechte Bewegung zählt).</p>
+      <p class="hint" id="hint">Finger auflegen und waagerecht bewegen – aufgezeichnet wird, solange er aufliegt.</p>
     </section>
     <section class="btPad" id="btPadL" aria-label="Aufnahmefeld links" hidden><canvas id="padL"></canvas></section>
+    <div class="split" id="split" role="separator" aria-label="Aufteilung zwischen Zeichenfläche und Diagrammen – ziehen"></div>
     <section class="plotWrap">
       <div class="plotBox">
         <canvas id="plots" aria-label="Diagramme: Ort, Geschwindigkeit und Beschleunigung über der Zeit"></canvas>
         <div class="diaCtl" id="diaCtl" role="group" aria-label="Was in den Diagrammen zu sehen ist" hidden>
           <div class="grp" data-d="x" hidden>
             <button class="bgV" data-s="tang" data-d="x" aria-pressed="true" title="Tangente in x(t): Ihre Steigung ist die Geschwindigkeit v">Tangente</button>
+            <button class="bgD1" data-s="mon" data-d="x" aria-pressed="false" title="Monotonieintervalle von x(t): x steigt, wo v &gt; 0 ist, und fällt, wo v &lt; 0 ist. An den Grenzen liegen Hoch- und Tiefpunkte.">Monotonie</button>
+            <button class="bgD2" data-s="kru" data-d="x" aria-pressed="false" title="Krümmungsintervalle von x(t): x ist linksgekrümmt (∪), wo a &gt; 0 ist, und rechtsgekrümmt (∩), wo a &lt; 0 ist. An den Grenzen liegen Wendepunkte.">Krümmung</button>
           </div>
           <div class="grp" data-d="v" hidden>
             <button class="bgA" data-s="tang" data-d="v" aria-pressed="false" title="Tangente in v(t): Ihre Steigung ist die Beschleunigung a">Tangente</button>
             <button class="bgX" data-s="fl" data-d="v" aria-pressed="false" title="Fläche unter v(t) von t₁ bis t₂: Sie ist die Ortsänderung Δx">Fläche</button>
+            <button class="bgD1" data-s="vz" data-d="v" aria-pressed="false" title="Vorzeichenintervalle von v(t): Wo v &gt; 0 ist, läuft die Bewegung vorwärts – genau dort steigt x(t).">Vorzeichen</button>
+            <button class="bgD2" data-s="mon" data-d="v" aria-pressed="false" title="Monotonieintervalle von v(t): v steigt, wo a &gt; 0 ist, und fällt, wo a &lt; 0 ist.">Monotonie</button>
           </div>
           <div class="grp" data-d="a" hidden>
             <button class="bgV" data-s="fl" data-d="a" aria-pressed="false" title="Fläche unter a(t) von t₁ bis t₂: Sie ist die Geschwindigkeitsänderung Δv">Fläche</button>
+            <button class="bgD2" data-s="vz" data-d="a" aria-pressed="false" title="Vorzeichenintervalle von a(t): Wo a &gt; 0 ist, wird die Bewegung schneller in +Richtung – genau dort steigt v(t).">Vorzeichen</button>
           </div>
         </div>
       </div>
@@ -502,9 +758,6 @@ details.settings summary::-webkit-details-marker { display: none; }
   </main>
 </div>
 
-<!-- Die vier Tafel-Bausteine (shot.js, modus.js, qrcode.min.js, teilen.js) entfallen
-     in der Suite-Fassung: alle Aufrufe sind mit "if (window.Tafel…)" abgesichert.
-     Statt der Tafel-Meldungen gibt es unten einen eigenen kleinen Hinweisbalken. -->
 <script>
 (() => {
 "use strict";
@@ -512,13 +765,20 @@ const $ = id => document.getElementById(id);
 const pad = $("pad"), plots = $("plots"), app = $("app");
 const DT = 0.01;            // Abtastraster nach dem Resampling (s)
 const PAD_M = 24;           // Rand im Aufnahmefeld (px)
-const SENK_OBEN = 60, SENK_UNTEN = 58;   // Raender des senkrechten Lineals
+const SENK_OBEN = 60;       // oberer Rand des senkrechten Lineals (Platz fuer den Hinweis)
+/* Unter dem senkrechten Lineal steht nur noch die Null. Legende und Fusszeile gibt es dort
+   nur mit den Vektoren - dann faengt das Lineal entsprechend hoeher an. */
+const senkUnten = () => state.allVec ? 58 : 18;
 
 if (window.parent !== window) document.body.classList.add("imRahmen");
 const isIPad = /iPad/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-let savedPpc = null;
+let savedPpc = null, savedPadPos = null;
 try { savedPpc = parseFloat(localStorage.getItem("bwd-ppc")); } catch (e) {}
+/* Wo das Aufnahmefeld liegt, ist Geschmack und haengt am Geraet - darum merkt es sich der
+   Browser, wie den Massstab. */
+try { savedPadPos = localStorage.getItem("bwd-padpos"); } catch (e) {}
 
+const PADPOS = ["auto", "vor", "hinter"];
 /* Kurze Rueckmeldung am unteren Rand (ersetzt TafelShot.toast). */
 let hinweisT = 0;
 function hinweis(text) {
@@ -531,23 +791,31 @@ function hinweis(text) {
 const state = {
   mode: "1d", comp: "xy", sigma: 60,
   achse: "x",           // 1D: waagerechte (x) oder senkrechte (y) Aufnahme
-  /* fuer jedes Diagramm einzeln: Tangente in x(t) bzw. v(t), Flaeche unter v(t) bzw. a(t) */
-  show: { stellen: true, tang: { x: true, v: false }, fl: { v: false, a: false } },
+  /* fuer jedes Diagramm einzeln: Tangente in x(t) bzw. v(t), Flaeche unter v(t) bzw. a(t),
+     dazu die abgelesenen Intervalle - Monotonie (mon), Kruemmung (kru), Vorzeichen (vz) */
+  show: { stellen: true, tang: { x: true, v: false }, fl: { v: false, a: false },
+          mon: { x: false, v: false }, kru: { x: false }, vz: { v: false, a: false } },
   dia: { x: true, v: true, a: true },      // welche der drei Diagramme gezeichnet werden
   tool: "stelle",
   raw: [],              // {t (s), x (px, rechts +), y (px, oben +)} relativ zum Ursprung
   sample: true, prev: null,
   cursor: null, pins: [], interval: null,
   ppc: savedPpc && savedPpc > 5 ? savedPpc : (isIPad ? 52 : 37.8),
-  recording: false, recId: null, t0: 0,
+  recording: false, recId: null, t0: 0, tOff: 0,
   playing: false, speed: 1,
   strobe: 0.1, allVec: false, vecSel: "va", vecScale: 1,
+  tab: false,                 // Ablesetabelle unter den Diagrammen - sie kostet Platz und ist selten noetig
   /* Spiele (nur 1D): "aus" = normale Aufnahme, "ziel" = Zielkurve nachfahren,
      "battle" = zwei Felder an den Fensterraendern, Start per Countdown */
-  spiel: "aus", zielTyp: "x", zielT: 5, ziel: null, zeichnen: false,
+  spiel: "aus", zielTyp: "x", zielT: 5, zielFrei: false, ziel: null, zeichnen: false, zielNote: "",
+  split: 44,            // 2D: wie viel Prozent der Buehne die Zeichenflaeche bekommt
+  /* Platz des Aufnahmefeldes: "vor" den Diagrammen (oben bzw. links), "hinter" ihnen
+     (unten bzw. rechts) oder "auto" - dann rueckt es im Ziel-Modus von selbst dahinter. */
+  padPos: PADPOS.indexOf(savedPadPos) >= 0 ? savedPadPos : "auto",
   fs: 1,                // Schriftgröße in den Diagrammen (A− / A+)
 };
 $("ppc").value = state.ppc;
+$("padPos").value = state.padPos;
 let D = null;
 
 // ---------- Hilfen ----------
@@ -579,7 +847,8 @@ function alpha(hex, a) {
 }
 function colors() {
   return { bg: css("--bg"), surface: css("--surface"), ink: css("--ink"), muted: css("--muted"), line: css("--line"),
-    grid: css("--grid"), qx: css("--qx"), qv: css("--qv"), qa: css("--qa") };
+    grid: css("--grid"), qx: css("--qx"), qv: css("--qv"), qa: css("--qa"),
+    iv1p: css("--iv1plus"), iv1m: css("--iv1minus"), iv2p: css("--iv2plus"), iv2m: css("--iv2minus") };
 }
 function setup(cv) {
   const r = cv.getBoundingClientRect();
@@ -680,7 +949,7 @@ function makeSample() {
   let seed = 7; const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647 - 0.5);
   const noise = 0.6;
   if (state.mode === "1d") {
-    const span = istSenk() ? Math.max(140, r.height - SENK_OBEN - SENK_UNTEN) : wpx;
+    const span = istSenk() ? Math.max(140, r.height - SENK_OBEN - senkUnten()) : wpx;
     const A = 0.68 * span, x0 = 0.1 * span, B = 0.4 * A;
     const T1 = 2.4, P = 0.5, T2 = 1.6, T = T1 + P + T2;
     for (let t = 0; t <= T + 1e-9; t += 1 / 60) {
@@ -714,9 +983,12 @@ function defaults() {
 function padOrigin(w, h) {
   if (state.mode !== "1d") return { x: PAD_M + 6, y: h - PAD_M - 6 };
   /* senkrecht: Lineal links, die Null unten - oben bleibt Platz fuer den Hinweis,
-     unten fuer Legende und Zeile "Punkte im Abstand" (SENK_OBEN / SENK_UNTEN). */
-  if (istSenk()) return { x: 40, y: h - SENK_UNTEN };
-  return { x: PAD_M, y: state.allVec ? Math.max(h * 0.62, h - 78) : h * 0.62 };
+     unten nur fuer die Null, mit Vektoren auch fuer die Legende (SENK_OBEN / senkUnten). */
+  if (istSenk()) return { x: 40, y: h - senkUnten() };
+  /* waagerecht: Das Lineal liegt oben am Rand. So verdeckt der streichende Finger es nicht,
+     und es bleibt waehrend der Aufnahme zu sehen. Punkte, Pfeile und Koerper haengen
+     darunter, der Hinweis steht am unteren Rand. */
+  return { x: PAD_M, y: Math.round(fs(34)) };
 }
 function addSample(ev) {
   const r = pad.getBoundingClientRect();
@@ -726,11 +998,34 @@ function addSample(ev) {
     ? { t, x: o.y - (ev.clientY - r.top), y: 0 }     // senkrecht: die Hoehe ist die Groesse
     : { t, x: ev.clientX - r.left - o.x, y: o.y - (ev.clientY - r.top) };
   if (state.mode === "1d") p.y = 0;
+  /* Punkte, die die Ruheschleife an der letzten Stelle angehaengt hat, weichen einer
+     echten Messung - sonst verwirft die Zeitpruefung darunter die erste Bewegung danach. */
+  while (state.raw.length > 1 && state.raw[state.raw.length - 1].ruht
+         && state.raw[state.raw.length - 1].t > t) state.raw.pop();
   const last = state.raw[state.raw.length - 1];
   if (last && t < last.t) return;
-  if (last && t - last.t < 0.0005) { last.x = p.x; last.y = p.y; return; }
+  if (last && t - last.t < 0.0005) { last.x = p.x; last.y = p.y; last.ruht = false; return; }
   state.raw.push(p);
 }
+/* Der Finger darf ruhen - dann kommt kein pointermove mehr, die Zeit laeuft aber weiter.
+   Diese Schleife haengt deshalb waehrend der Aufnahme selbst Punkte an der letzten Stelle
+   an: x(t) laeuft waagerecht weiter, v(t) liegt auf der Achse. Zieht der Finger wieder,
+   uebernehmen die echten Messungen (siehe addSample). */
+const RUHE = 0.05;                 // nach dieser Pause ohne Bewegung selbst messen (s)
+let rafRuhe = 0;
+function ruheLoop() {
+  rafRuhe = 0;
+  if (!state.recording) return;
+  rafRuhe = requestAnimationFrame(ruheLoop);
+  const last = state.raw[state.raw.length - 1];
+  if (!last) return;
+  const t = (performance.now() - state.tOff - state.t0) / 1000;
+  if (t - last.t < RUHE) return;
+  state.raw.push({ t, x: last.x, y: last.y, ruht: true });
+  process(); updateStatus(); requestDraw();
+}
+const ruheStart = () => { if (!rafRuhe) rafRuhe = requestAnimationFrame(ruheLoop); };
+const ruheStopp = () => { cancelAnimationFrame(rafRuhe); rafRuhe = 0; };
 pad.addEventListener("pointerdown", e => {
   if (state.recording) return;
   e.preventDefault();
@@ -738,8 +1033,12 @@ pad.addEventListener("pointerdown", e => {
   try { pad.setPointerCapture(e.pointerId); } catch (err) {}
   state.prev = { raw: state.raw, sample: state.sample, cursor: state.cursor, pins: state.pins, interval: state.interval, mode: state.mode };
   state.raw = []; state.recording = true; state.recId = e.pointerId; state.t0 = e.timeStamp;
+  /* Die Ruheschleife misst die Zeit mit performance.now(); zaehlt e.timeStamp im Browser
+     von einem anderen Nullpunkt, steht der Abstand hier. */
+  state.tOff = performance.now() - e.timeStamp;
   state.cursor = null; state.pins = [];
   addSample(e);
+  ruheStart();
   $("hint").hidden = true;
   updateStatus(); requestDraw();
 });
@@ -753,7 +1052,7 @@ pad.addEventListener("pointermove", e => {
 function endRec(e) {
   if (!state.recording || e.pointerId !== state.recId) return;
   addSample(e);
-  state.recording = false;
+  state.recording = false; ruheStopp();
   const T = state.raw.length ? state.raw[state.raw.length - 1].t : 0;
   if (T < 0.2 || state.raw.length < 4) {
     // nur angetippt: alte Aufnahme behalten
@@ -810,19 +1109,21 @@ function drawPad() {
       ctx.textBaseline = "bottom"; ctx.fillText("cm", o.x - 4, Math.max(lastLabel - 12, 14));
       ctx.textBaseline = "top";
     } else {
+    /* Striche und Zahlen zeigen nach oben, die Messkante nach unten ins Feld. */
     const xmax = w - PAD_M;
-    ctx.textAlign = "center";
+    ctx.textAlign = "center"; ctx.textBaseline = "bottom";
     let lastLabel = 0;
     for (let k = 0; X(k / (mm ? 10 : 1)) <= xmax + 0.1; k++) {
       const cm = mm ? k / 10 : k, px = X(cm);
       const isCm = mm ? k % 10 === 0 : true, is5 = isCm && Math.round(cm) % 5 === 0;
       const len = is5 ? 14 : isCm ? 9 : 4;
       ctx.lineWidth = is5 ? 1.5 : 1;
-      ctx.beginPath(); ctx.moveTo(px, o.y); ctx.lineTo(px, o.y + len); ctx.stroke();
-      if (is5) { ctx.fillText(String(Math.round(cm)), px, o.y + 17); lastLabel = px; }
+      ctx.beginPath(); ctx.moveTo(px, o.y); ctx.lineTo(px, o.y - len); ctx.stroke();
+      if (is5) { ctx.fillText(String(Math.round(cm)), px, o.y - 16); lastLabel = px; }
     }
     ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(xmax, o.y); ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.textAlign = "left"; ctx.fillText("cm", Math.min(lastLabel + 12, w - 22), o.y + 17);
+    ctx.textAlign = "left"; ctx.fillText("cm", Math.min(lastLabel + 12, w - 22), o.y - 16);
+    ctx.textBaseline = "top";
     }
   } else {
     // Karopapier
@@ -874,14 +1175,16 @@ function drawPad() {
   const step = Math.max(1, Math.round(state.strobe / DT));
   const one = state.mode === "1d";
   const lane = one && state.allVec;              // 1D: Punkte zeitlich versetzt nebeneinander
+  /* 1D waagerecht: Unten steht der Hinweis, Legende und Fusszeile rutschen eine Zeile hoch. */
+  const hoch1d = one && !senk;
   /* In 1D liegt die Bewegung auf dem Lineal; quer dazu stehen die Punkte und Pfeile -
-     bei der waagerechten Aufnahme oberhalb, bei der senkrechten rechts davon. d ist
-     dieser Abstand vom Lineal, so gilt derselbe Code fuer beide Richtungen. */
-  const Pp = (cm, d) => senk ? [o.x + d, o.y - cm * ppc] : [o.x + cm * ppc, o.y - d];
-  const dFern = senk ? w - o.x - 26 : o.y - 44;  // Ende der Zeitspur, am weitesten vom Lineal weg
-  const dOf = t => !lane ? 20
-    : senk ? 30 + (t / Math.max(D.T, 0.01)) * (dFern - 30)
-           : dFern + (t / Math.max(D.T, 0.01)) * (26 - dFern);
+     bei der waagerechten Aufnahme darunter, bei der senkrechten rechts davon. d ist
+     dieser Abstand vom Lineal, so gilt derselbe Code fuer beide Richtungen. In 2D zaehlt
+     d nach oben, dort ist es die y-Koordinate. */
+  const Pp = (cm, d) => senk ? [o.x + d, o.y - cm * ppc] : [o.x + cm * ppc, one ? o.y + d : o.y - d];
+  const dNah = senk ? 30 : 26;                   // Anfang der Zeitspur, dicht am Lineal
+  const dFern = senk ? w - o.x - 26 : h - o.y - 56;   // ihr Ende, am weitesten weg
+  const dOf = t => !lane ? 20 : dNah + (t / Math.max(D.T, 0.01)) * (dFern - dNah);
   const ptOf = i => one ? Pp(D.x[i], dOf(D.t[i])) : [X(D.x[i]), Y(D.y[i])];
   const vs = 0.25 * ppc * state.vecScale, as = 0.04 * ppc * state.vecScale; // Pfeil: v · 0,25 s bzw. a · 0,04 s²
   const capF = (dx, dy) => { const l = Math.hypot(dx, dy), m = Math.max(w, h); return l > m ? m / l : 1; };
@@ -907,13 +1210,18 @@ function drawPad() {
   }
   ctx.fillStyle = alpha(C.qx, one && !lane ? 0.45 : 0.85);
   for (let i = 0; i < D.N; i += step) { const [px, py] = ptOf(i); ctx.beginPath(); ctx.arc(px, py, step * DT * ppc < 10 ? 2.4 : 3.2, 0, 7); ctx.fill(); }
+  /* Unter dem waagerechten Lineal in 1D steht nichts mehr: Der Zeitabstand steht in den
+     Einstellungen, der Pfeilmassstab wird nur mit der Spur gebraucht. */
+  const fussAn = !one || lane;
+  if (fussAn) {
   ctx.font = `${fs(11)}px ${css("--font-body")}`; ctx.fillStyle = C.muted; ctx.textAlign = "right"; ctx.textBaseline = "bottom";
   /* im schmalen, senkrechten Feld muss die Zeile kurz bleiben */
   const dt = fmt(state.strobe, state.strobe < 0.1 ? 2 : state.strobe < 1 ? (state.strobe * 10 % 1 ? 2 : 1) : 0);
   const fuss = senk ? `${dt} s je Punkt` + (lane ? ", Zeit nach rechts" : "")
                     : `Punkte im Abstand von ${dt} s` + (lane ? ", Zeit läuft nach unten" : "");
   if (senk) ctx.font = `${passend(ctx, fuss, w - 18, fs(11), css("--font-body"))}px ${css("--font-body")}`;
-  ctx.fillText(fuss, w - 12, senk ? h - 44 : h - 8);
+  ctx.fillText(fuss, w - 12, senk ? h - 44 : hoch1d ? h - 26 : h - 8);
+  }
 
   // Körper zum Zeitpunkt des Cursors
   if (state.cursor != null) {
@@ -943,8 +1251,9 @@ function drawPad() {
     ctx.beginPath(); ctx.arc(px, py, 8, 0, 7); ctx.fill(); ctx.stroke();
   }
   // Legende mit Pfeilmaßstab - im schmalen, senkrechten Feld untereinander
+  if (!fussAn) return;
   ctx.textBaseline = "bottom"; ctx.textAlign = "left";
-  const lyV = senk ? h - 26 : h - 8, lyA = h - 8;
+  const lyV = (senk || hoch1d) ? h - 26 : h - 8, lyA = hoch1d ? h - 26 : h - 8;
   const vTxt = `1 cm ≙ ${fmt(4 / state.vecScale, state.vecScale > 1 ? 1 : 0)} cm/s`;
   const aTxt = `1 cm ≙ ${fmt(25 / state.vecScale, state.vecScale > 2 ? 2 : state.vecScale > 1 ? 1 : 0)} cm/s²`;
   // im schmalen Feld richtet sich die Schriftgroesse nach der laengeren der beiden Zeilen
@@ -961,6 +1270,45 @@ function drawPad() {
 }
 
 
+/* ---------- Teiler im 2D-Modus: Zeichenflaeche und Diagramme teilen sich den Platz ---------- */
+function splitSetzen(v) {
+  state.split = clamp(Math.round(v * 10) / 10, 15, 85);
+  document.documentElement.style.setProperty("--split", state.split + "%");
+}
+(() => {
+  const el = $("split"), stage = document.querySelector(".stage");
+  let zieh = null;
+  el.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    try { el.setPointerCapture(e.pointerId); } catch (err) {}
+    /* Liegen Zeichenflaeche und Diagramme nebeneinander oder uebereinander? Der Balken
+       selbst sagt es: nebeneinander ist er hoch und schmal. Und liegt die Zeichenflaeche
+       hinten, zaehlt der Abstand vom anderen Rand. */
+    const b = el.getBoundingClientRect();
+    zieh = { id: e.pointerId, r: stage.getBoundingClientRect(), waag: b.height > b.width,
+             hinten: app.classList.contains("padHinten") };
+    el.classList.add("zieht");
+  });
+  el.addEventListener("pointermove", e => {
+    if (!zieh || zieh.id !== e.pointerId) return;
+    e.preventDefault();
+    const r = zieh.r;
+    const anteil = zieh.waag
+      ? (zieh.hinten ? r.right - e.clientX : e.clientX - r.left) / r.width
+      : (zieh.hinten ? r.bottom - e.clientY : e.clientY - r.top) / r.height;
+    splitSetzen(anteil * 100);
+    requestDraw();
+  });
+  const los = e => {
+    if (!zieh || zieh.id !== e.pointerId) return;
+    zieh = null; el.classList.remove("zieht");
+    sync(); requestDraw();
+  };
+  el.addEventListener("pointerup", los);
+  el.addEventListener("pointercancel", los);
+  el.addEventListener("dblclick", () => { splitSetzen(44); sync(); requestDraw(); });
+})();
+
 /* ---------- Ziel und Battle (nur 1D) ----------
    Ziel: Eine Kurve wird mit dem Finger in eines der drei Diagramme gezeichnet; danach
    versucht man, sie im Aufnahmefeld nachzufahren. Gewertet wird, wie viel Prozent der
@@ -973,6 +1321,9 @@ const BT_OBEN = 52, BT_UNTEN = 34;                  // Raender des Lineals im Ba
 const ZIEL_KLEIN = { x: 0.4, v: 1.5, a: 5 };        // kleinstes Trefferband je Groesse
 const EINH = { x: "cm", v: "cm/s", a: "cm/s²" };
 const spielAn = () => state.mode === "1d" && state.spiel !== "aus";
+/* Liegt das Aufnahmefeld hinter den Diagrammen? Im Ziel-Modus von Haus aus ja. */
+const padHinten = () => state.padPos === "hinter"
+  || (state.padPos === "auto" && state.mode === "1d" && state.spiel === "ziel");
 const battleAn = () => state.mode === "1d" && state.spiel === "battle";
 const zielKey = typ => typ === "x" ? "x" : typ === "v" ? "vx" : "ax";
 const zielName = typ => (typ === "x" ? sym1d() : typ) + "(t)";
@@ -997,7 +1348,7 @@ function zielAus(pts) {
   const q = pts.filter(o => isFinite(o.t) && isFinite(o.v)).sort((a, b) => a.t - b.t);
   if (q.length < 2) return null;
   const v = new Float64Array(N);
-  let j = 0, lo = Infinity, hi = -Infinity;
+  let j = 0;
   for (let i = 0; i < N; i++) {
     const t = i * DT;
     if (t <= q[0].t) v[i] = q[0].v;
@@ -1008,11 +1359,8 @@ function zielAus(pts) {
       const f = b.t > a.t ? clamp((t - a.t) / (b.t - a.t), 0, 1) : 0;
       v[i] = a.v + f * (b.v - a.v);
     }
-    if (v[i] < lo) lo = v[i];
-    if (v[i] > hi) hi = v[i];
   }
-  const tol = Math.max((hi - lo) * 0.09, ZIEL_KLEIN[state.zielTyp]);
-  return { typ: state.zielTyp, T, v, tol, rng: [lo - tol, hi + tol] };
+  return zielMasse({ typ: state.zielTyp, T, v });
 }
 /* Zum Teilen reicht die Zielkurve in Zehntelsekunden; beim Einlesen wird wieder auf das
    Rechenraster aufgefuellt (ein alter Stand ohne dt steht schon darauf). */
@@ -1046,6 +1394,61 @@ function bewerten(dd) {
   }
   return { quote: Math.round(innen / N * 100), abw: summe / N };
 }
+/* Welche Strecke braucht man fuer dieses Ziel? Bei v(t) ist es die Flaeche unter der
+   Kurve, bei a(t) kommt die frei waehlbare Anfangsgeschwindigkeit dazu - die darf man
+   sich so aussuchen, dass man mit moeglichst wenig Weg auskommt. */
+function zielWeg(z) {
+  const N = z.v.length;
+  if (z.typ === "x") { let lo = Infinity, hi = -Infinity;
+    for (const q of z.v) { if (q < lo) lo = q; if (q > hi) hi = q; }
+    return hi - lo; }
+  if (z.typ === "v") { let s = 0, lo = 0, hi = 0;
+    for (let i = 1; i < N; i++) { s += (z.v[i - 1] + z.v[i]) / 2 * DT; if (s < lo) lo = s; if (s > hi) hi = s; }
+    return hi - lo; }
+  const w = new Float64Array(N);
+  let v = 0;
+  for (let i = 1; i < N; i++) { v += (z.v[i - 1] + z.v[i]) / 2 * DT; w[i] = w[i - 1] + v * DT; }
+  let best = Infinity;
+  for (let j = -80; j <= 80; j++) {            // Anfangsgeschwindigkeit in Schritten von 0,5 cm/s
+    const v0 = j * 0.5;
+    let lo = Infinity, hi = -Infinity;
+    for (let i = 0; i < N; i += 5) { const q = w[i] + v0 * i * DT; if (q < lo) lo = q; if (q > hi) hi = q; }
+    if (hi - lo < best) best = hi - lo;
+  }
+  return best;
+}
+/* Trefferband und Wertebereich nach jeder Aenderung der Kurve neu bestimmen. Das kleinste
+   Band (ZIEL_KLEIN) faengt fast waagerechte Kurven ab, darf aber nie breiter werden als die
+   halbe Kurve - sonst laege man nach einem starken Verkleinern immer darin. */
+function zielMasse(z) {
+  let lo = Infinity, hi = -Infinity;
+  for (const q of z.v) { if (q < lo) lo = q; if (q > hi) hi = q; }
+  const spanne = hi - lo, mass = Math.max(spanne, Math.abs((lo + hi) / 2));
+  z.tol = Math.max(spanne * 0.09, Math.min(ZIEL_KLEIN[z.typ], mass * 0.5), ZIEL_KLEIN[z.typ] * 0.1);
+  z.rng = [lo - z.tol, hi + z.tol];
+  return z;
+}
+/* Passt das Ziel ins Aufnahmefeld? Sonst wird es so weit verkleinert (bei x(t) notfalls
+   auch verschoben), dass es sich ueberhaupt nachfahren laesst - mit Ansage. */
+function zielPruefen(z) {
+  const S = padSpanne(), nutz = S * 0.95, weg = zielWeg(z);
+  let k = 1, dy = 0;
+  if (weg > nutz && weg > 1e-6) k = nutz / weg;
+  if (z.typ === "x") {
+    let lo = Infinity, hi = -Infinity;
+    for (const q of z.v) { if (q < lo) lo = q; if (q > hi) hi = q; }
+    const lo2 = lo * k, hi2 = hi * k;
+    if (lo2 < 0) dy = -lo2; else if (hi2 > S) dy = S - hi2;
+  }
+  if (k === 1 && !dy) { state.zielNote = ""; return z; }
+  for (let i = 0; i < z.v.length; i++) z.v[i] = z.v[i] * k + dy;
+  zielMasse(z);
+  state.zielNote = k < 1
+    ? `Nicht erreichbar: dafür wären ${fmt(weg, 1)} cm Weg nötig, das Feld hat ${fmt(S, 1)} cm – die Kurve wurde auf ${Math.round(k * 100)} % verkleinert.`
+    : "Die Kurve lag außerhalb des Feldes und wurde hineingeschoben.";
+  hinweis(state.zielNote);
+  return z;
+}
 function spielSetzen(sp) {
   if (state.spiel === sp || state.mode !== "1d") return;
   stopPlay(); btStopp();
@@ -1053,7 +1456,10 @@ function spielSetzen(sp) {
   state.cursor = null; state.pins = []; state.interval = null;
   if (sp === "aus") { state.zeichnen = false; makeSample(); }
   else { state.raw = []; state.sample = false; D = null; state.zeichnen = !state.ziel; }
-  updateUI(); requestDraw();
+  updateUI();
+  /* die Felder sind in Battle anders lang als in Ziel - also noch einmal nachsehen */
+  if (sp !== "aus" && state.ziel) requestAnimationFrame(() => { zielPruefen(state.ziel); updateUI(); draw(); });
+  requestDraw();
 }
 
 // ---------- Battle: zwei Felder, Countdown, gleichzeitige Aufnahme ----------
@@ -1204,11 +1610,183 @@ function pill(ctx, text, x, y, color, C, align = "left") {
   ctx.fillStyle = color; ctx.textAlign = "left"; ctx.textBaseline = "middle";
   ctx.fillText(text, bx + 5, y + 0.5);
 }
+/* ---------- Monotonie, Kruemmung, Vorzeichen ----------
+   Alle drei Fragen laufen auf dieselbe Rechnung hinaus: Wo hat eine Groesse welches
+   Vorzeichen? x(t) steigt, wo v > 0 ist; x(t) ist linksgekruemmt, wo a > 0 ist;
+   v(t) steigt, wo a > 0 ist. Es wird also immer das Vorzeichen einer Kurve gesucht,
+   die null, ein oder zwei Diagramme tiefer liegt. Die Farbe steht hier fuer das Vorzeichen
+   und nicht fuer die Groesse: aus v abgelesen blau/orange, aus a abgelesen gruen/rot. So
+   springt der Unterschied ins Auge - im Streifen, im Hintergrund des Diagramms und in der
+   Kurve selbst, die abschnittsweise in diesen Farben gezeichnet wird. */
+const IV_ART = {
+  vz:  { tiefer: 0, name: "Vorzeichen",
+         z: { "1": "+", "-1": "−", "0": "0" },
+         wort: { "1": "positiv", "-1": "negativ", "0": "≈ 0" } },
+  mon: { tiefer: 1, name: "Monotonie",
+         z: { "1": "↗", "-1": "↘", "0": "→" },
+         wort: { "1": "steigt", "-1": "fällt", "0": "konstant" } },
+  kru: { tiefer: 2, name: "Krümmung",
+         z: { "1": "∪", "-1": "∩", "0": "–" },
+         wort: { "1": "links", "-1": "rechts", "0": "gerade" } },
+};
+function ivFarbe(o, s, C) {
+  const zw = o.q.id === "a";                 // aus der zweiten Ableitung abgelesen?
+  return s > 0 ? (zw ? C.iv2p : C.iv1p) : s < 0 ? (zw ? C.iv2m : C.iv1m) : C.muted;
+}
+/* Totband: Werte dicht an null zaehlen noch zum laufenden Abschnitt - sonst zerfaellt
+   eine mit dem Finger aufgenommene Kurve in lauter Schnipsel. */
+function ivEps(arr) {
+  let m = 0;
+  for (const v of arr) { const b = Math.abs(v); if (b > m) m = b; }
+  return m * 0.04;
+}
+/* Nullband: Hier geht es nicht um das Zittern dicht an einem Vorzeichenwechsel, sondern
+   um Abschnitte, in denen die Kurve wirklich auf der t-Achse liegt - v = 0 (x konstant)
+   oder a = 0 (v konstant, x eine Gerade). Gemessen wird am gezeichneten Diagramm: Was im
+   Bild nicht von der Achse abhebt - etwa ein Zwanzigstel der Hoehe -, gilt als null.
+   Eine verwackelte Aufnahme, deren a(t) das ganze Diagramm ausfuellt, wird dadurch nicht
+   grau; dort hilft nur mehr Glaettung. */
+const ivNull = q => (q.hi - q.lo) * 0.05;
+/* Die Abschnitte gleichen Vorzeichens einer Kurve. Die Grenze liegt dort, wo die Kurve
+   wirklich durch null geht (Hoch-, Tief- oder Wendepunkt), nicht dort, wo sie das
+   Totband verlaesst. Abschnitte unter "kurz" Sekunden gehoeren zum Nachbarn. */
+function vzStuecke(arr, tArr, eps, kurz, eps0, nullMin) {
+  const n = arr.length;
+  if (n < 2) return [];
+  const sg = new Int8Array(n);
+  let cur = 0;
+  for (let i = 0; i < n; i++) { if (arr[i] > eps) cur = 1; else if (arr[i] < -eps) cur = -1; sg[i] = cur; }
+  let k = 0; while (k < n && !sg[k]) k++;
+  if (k === n) return [{ a: tArr[0], b: tArr[n - 1], s: 0 }];
+  for (let i = 0; i < k; i++) sg[i] = sg[k];
+  /* Bleibt die Kurve lange genug im Nullband, liegt sie dort auf der t-Achse: ein eigener
+     Abschnitt mit Vorzeichen 0, grau gefaerbt. Kurze Durchgaenge bleiben Durchgaenge. */
+  if (eps0 > 0) {
+    const ruhe = new Uint8Array(n);
+    for (let i = 0; i < n; i++) {
+      if (Math.abs(arr[i]) >= eps0) continue;
+      let j = i; while (j + 1 < n && Math.abs(arr[j + 1]) < eps0) j++;
+      if (tArr[j] - tArr[i] >= nullMin) for (let m = i; m <= j; m++) ruhe[m] = 1;
+      i = j;
+    }
+    for (let i = 0; i < n; i++) if (ruhe[i]) sg[i] = 0;
+  }
+  const nulls = i => {                       // Nullstelle zwischen Messpunkt i und i+1
+    const u = arr[i], v = arr[i + 1], r = u === v ? 0.5 : u / (u - v);
+    return tArr[i] + (tArr[i + 1] - tArr[i]) * r;
+  };
+  const grenze = e => {                      // Vorzeichenwechsel bei e: Nullstelle daneben suchen
+    for (let d = 0; d < n; d++) for (const i of [e - 1 - d, e - 1 + d]) {
+      if (i < 0 || i + 1 >= n) continue;
+      if ((arr[i] <= 0 && arr[i + 1] >= 0) || (arr[i] >= 0 && arr[i + 1] <= 0)) return nulls(i);
+    }
+    return tArr[e];
+  };
+  const out = [{ s: sg[0], a: tArr[0], b: tArr[n - 1] }];
+  for (let i = 1; i < n; i++) {
+    if (sg[i] === sg[i - 1]) continue;
+    /* An eine Ruhe grenzt kein Nulldurchgang: dort liegt die Grenze, wo die Kurve das
+       Nullband verlaesst bzw. betritt. */
+    const t = (!sg[i] || !sg[i - 1]) ? (tArr[i - 1] + tArr[i]) / 2 : grenze(i);
+    out[out.length - 1].b = t;
+    out.push({ s: sg[i], a: t, b: tArr[n - 1] });
+  }
+  for (let j = out.length - 1; j >= 0 && out.length > 1; j--) {
+    if (out[j].b - out[j].a >= kurz) continue;
+    if (j) { out[j - 1].b = out[j].b; out.splice(j, 1); }
+    else { out[1].a = out[0].a; out.splice(0, 1); }
+  }
+  for (let j = out.length - 1; j > 0; j--)
+    if (out[j].s === out[j - 1].s) { out[j - 1].b = out[j].b; out.splice(j, 1); }
+  return out;
+}
+/* Was gerade abzulesen ist: je Diagramm und Komponente ein Streifen. "reihe" sagt,
+   der wievielte Streifen von unten es in diesem Diagramm ist. Sind in einem Diagramm zwei
+   Fragen angeschaltet (bei x(t) Monotonie und Kruemmung), faerbt nur die erste - "haupt" -
+   Hintergrund und Kurve; die zweite bleibt ihr Streifen. */
+function ivSammeln(P, comps) {
+  const out = [];
+  if (!D) return out;
+  const kurz = Math.max(0.1, D.T * 0.03), nullMin = Math.max(kurz, 0.3);
+  P.forEach((p, i) => {
+    if (!p.an) return;
+    let reihe = 0; const hat = {};
+    ["vz", "mon", "kru"].forEach(art => {
+      const A = IV_ART[art], q = P[i + A.tiefer];
+      if (!q || !state.show[art] || !state.show[art][p.id]) return;
+      comps.forEach((c, ci) => {
+        const arr = D[q.key(c)], haupt = !hat[c];
+        hat[c] = true;
+        out.push({ p, q, art, c, ci, anz: comps.length, reihe, haupt,
+                   st: vzStuecke(arr, D.t, ivEps(arr), kurz, ivNull(q), nullMin) });
+      });
+      reihe++;
+    });
+  });
+  return out;
+}
+/* "flaeche" legt die ganze Zeichenflaeche des Diagramms abschnittsweise in die Farbe des
+   Vorzeichens (noch unter das Gitter), "band" zeichnet die Streifen mit den Symbolen vor
+   die Kurve, "punkte" setzt danach die Ringe auf die Grenzen - Hoch-, Tief- und
+   Wendepunkte. Die Kurve selbst faerbt drawPlots, siehe ivFarbe. */
+function ivMalen(ctx, liste, tx, C, clip, teil) {
+  if (!liste.length) return;
+  const sh = fs(13);
+  liste.forEach(o => {
+    const p = o.p, A = IV_ART[o.art], zwei = o.anz === 2;
+    const hoch = zwei ? sh / 2 : sh;
+    const y0 = p.top + layout.ph - 4 - (o.reihe + 1) * sh + (zwei ? o.ci * hoch : 0);
+    if (teil === "flaeche") {
+      /* Nur der Hauptstreifen faerbt, und nur wenn eine Komponente gezeigt wird - sonst
+         lagen zwei verschiedene Einteilungen uebereinander. */
+      if (!o.haupt || zwei) return;
+      o.st.forEach(r => {
+        ctx.fillStyle = alpha(ivFarbe(o, r.s, C), r.s ? 0.13 : 0.16);
+        ctx.fillRect(tx(r.a), p.top, Math.max(1, tx(r.b) - tx(r.a)), layout.ph);
+      });
+      return;
+    }
+    if (teil === "punkte") {
+      const arr = D[p.key(o.c)];
+      clip(p, () => o.st.forEach((r, j) => {
+        if (!j) return;
+        ctx.fillStyle = C.surface; ctx.strokeStyle = ivFarbe(o, r.s, C); ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.arc(tx(r.a), p.y(val(arr, r.a)), 4.5, 0, 7); ctx.fill(); ctx.stroke();
+      }));
+      return;
+    }
+    clip(p, () => {
+      ctx.setLineDash([3, 4]); ctx.lineWidth = 1; ctx.strokeStyle = alpha(C.ink, 0.3);
+      o.st.forEach((r, j) => {
+        if (!j) return;
+        ctx.beginPath(); ctx.moveTo(tx(r.a), p.top + 2); ctx.lineTo(tx(r.a), y0); ctx.stroke();
+      });
+      ctx.setLineDash([]);
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = `700 ${Math.min(fs(11), hoch - 3)}px ${css("--font-body")}`;
+      o.st.forEach(r => {
+        const x0 = tx(r.a), bw = Math.max(1.5, tx(r.b) - x0), k = String(r.s), col = ivFarbe(o, r.s, C);
+        ctx.fillStyle = alpha(col, r.s ? 0.3 : 0.08);
+        ctx.strokeStyle = alpha(col, 0.8); ctx.lineWidth = 1;
+        ctx.setLineDash(zwei && o.c === "y" ? [5, 4] : []);   /* wie die y-Kurve: gestrichelt */
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(x0 + 0.5, y0 + 0.5, bw - 1, hoch - 1, 3)
+                      : ctx.rect(x0 + 0.5, y0 + 0.5, bw - 1, hoch - 1);
+        ctx.fill(); ctx.stroke(); ctx.setLineDash([]);
+        const lang = A.z[k] + " " + A.wort[k];
+        const txt = bw > ctx.measureText(lang).width + 10 ? lang
+                  : bw > ctx.measureText(A.z[k]).width + 4 ? A.z[k] : "";
+        if (txt) { ctx.fillStyle = col; ctx.fillText(txt, x0 + bw / 2, y0 + hoch / 2 + 0.5); }
+      });
+    });
+  });
+}
+
 function drawPlots() {
   const { ctx, w, h } = setup(plots);
   const C = colors();
   const L = Math.round(fs(60)), TOP = 8, BOT = Math.round(fs(30)), GAP = 16;
-  const R = (D && !spielAn()) ? Math.round(fs(76)) : 14;   // rechts Platz fuer die Leiste je Diagramm
+  const R = (D && !spielAn()) ? Math.round(fs(84)) : 14;   // rechts Platz fuer die Leiste je Diagramm
   layout = { L, R, TOP, BOT, w, h };
   if (!D && !spielAn()) {
     diaCtlStand(null, R, 0);
@@ -1251,6 +1829,12 @@ function drawPlots() {
   diaCtlStand(P, R, ph);
   const tangAn = p => !!state.show.tang[p.id];      // Tangente in diesem Diagramm?
   const flAn = p => !!state.show.fl[p.id];          // Flaeche unter dieser Kurve?
+  const clip = (p, fn) => { ctx.save(); ctx.beginPath(); ctx.rect(L, p.top, pw, ph); ctx.clip(); fn(); ctx.restore(); };
+  /* Monotonie-, Kruemmungs- und Vorzeichenintervalle. Sie liegen zuunterst, weil die
+     gefaerbte Zeichenflaeche unter das Gitter gehoert. */
+  const ivL = (!spielAn() && D) ? ivSammeln(P, comps) : [];
+  const ivH = {};                                   // je Diagramm und Komponente der faerbende Streifen
+  ivL.forEach(o => { if (o.haupt) ivH[o.p.id + o.c] = o; });
 
   // Zeitachse
   const tStep = niceStep(T, Math.max(2, pw / 70)), tDec = decFor(tStep);
@@ -1258,6 +1842,7 @@ function drawPlots() {
   P.forEach((p, i) => {
     if (!p.an) return;
     ctx.fillStyle = alpha(C.bg, 0.45); ctx.fillRect(L, p.top, pw, ph);
+    ivMalen(ctx, ivL.filter(o => o.p === p), tx, C, clip, "flaeche");
     // Gitter
     ctx.lineWidth = 1; ctx.strokeStyle = C.grid;
     for (let t = 0; t <= T + 1e-9; t += tStep) { ctx.beginPath(); ctx.moveTo(tx(t), p.top); ctx.lineTo(tx(t), p.top + ph); ctx.stroke(); }
@@ -1287,8 +1872,6 @@ function drawPlots() {
   const yb = letzte.top + ph + 5;
   for (let t = 0; t <= T + 1e-9; t += tStep) if (tx(t) < L + pw - 30) ctx.fillText(fmt(t, tDec), tx(t), yb);
   ctx.textAlign = "right"; ctx.font = `700 ${fs(11.5)}px ${css("--font-body")}`; ctx.fillText("t in s", L + pw, yb);
-
-  const clip = (p, fn) => { ctx.save(); ctx.beginPath(); ctx.rect(L, p.top, pw, ph); ctx.clip(); fn(); ctx.restore(); };
 
   // Zielkurve mit Trefferband, darunter die Versuche der Spieler
   if (spielAn()) zielMalen(ctx, P, clip, tx, C);
@@ -1320,6 +1903,9 @@ function drawPlots() {
     ctx.fillText("t₁", tx(a), letzte.top + ph + 16); ctx.fillText("t₂", tx(b), letzte.top + ph + 16);
   }
 
+  // Streifen mit den Symbolen - vor die Kurve, damit sie obenauf liegt
+  ivMalen(ctx, ivL, tx, C, clip, "band");
+
   // Kurven - im Battle stattdessen die beiden Spieler in ihren Farben
   if (battleAn()) ["L", "R"].forEach(k => {
     const dd = BT.D[k];
@@ -1335,12 +1921,27 @@ function drawPlots() {
   else if (D) P.forEach(p => p.an && clip(p, () => {
     comps.forEach(c => {
       const arr = D[p.key(c)];
-      ctx.strokeStyle = p.color; ctx.lineWidth = 2.2; ctx.setLineDash(c === "y" && comps.length === 2 ? [7, 5] : []);
-      ctx.beginPath();
-      for (let i = 0; i < D.N; i++) { const X = tx(D.t[i]), Y = p.y(arr[i]); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
-      ctx.stroke(); ctx.setLineDash([]);
+      ctx.lineWidth = 2.2; ctx.setLineDash(c === "y" && comps.length === 2 ? [7, 5] : []);
+      const bahn = () => {
+        ctx.beginPath();
+        for (let i = 0; i < D.N; i++) { const X = tx(D.t[i]), Y = p.y(arr[i]); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }
+        ctx.stroke();
+      };
+      const h = ivH[p.id + c];
+      /* Ist ein Intervallstreifen an, traegt die Kurve selbst dessen Farben: Abschnitt fuer
+         Abschnitt wird sie beschnitten gezeichnet, die Grenzen stossen luecklos aneinander. */
+      if (h) h.st.forEach(r => {
+        ctx.save();
+        ctx.beginPath(); ctx.rect(tx(r.a) - 0.6, p.top, tx(r.b) - tx(r.a) + 1.2, ph); ctx.clip();
+        ctx.strokeStyle = ivFarbe(h, r.s, C); bahn();
+        ctx.restore();
+      });
+      else { ctx.strokeStyle = p.color; bahn(); }
+      ctx.setLineDash([]);
     });
   }));
+
+  ivMalen(ctx, ivL, tx, C, clip, "punkte");
 
   // Flächen-Beschriftung und Δ-Pfeile
   if (iv) {
@@ -1538,7 +2139,9 @@ function ergebnisText() {
   } else {
     s += e("Dein Versuch", colors()[z.typ === "x" ? "qx" : z.typ === "v" ? "qv" : "qa"], bewerten(D));
   }
-  return s + `<span>Ziel ${zielName(z.typ)} · Band ± ${fmt(z.tol, 1)} ${EINH[z.typ]} · ${fmt(z.T, 0)} s</span></div>`;
+  s += `<span>Ziel ${zielName(z.typ)} · Band ± ${fmt(z.tol, 1)} ${EINH[z.typ]} · ${fmt(z.T, z.T % 1 ? 1 : 0)} s</span>`;
+  if (state.zielNote) s += `<span style="color:var(--qa)">${state.zielNote}</span>`;
+  return s + "</div>";
 }
 function renderReadout() {
   const el = $("readout");
@@ -1576,14 +2179,26 @@ function renderReadout() {
     }).join("<br>");
     html += `<tr class="iv"><td><span class="badge">t₁–t₂</span></td><td>${fmt(a, 2)} – ${fmt(b, 2)}</td><td colspan="${cols.length + 1}" style="text-align:left;white-space:normal">${cell}</td></tr>`;
   }
+  /* Die abgelesenen Intervalle auch als Text - so lassen sie sich ins Heft uebernehmen. */
+  const ivL = (layout && layout.P) ? ivSammeln(layout.P, two ? (state.comp === "xy" ? ["x", "y"] : [state.comp]) : ["x"]) : [];
+  const CF = colors();
+  ivL.forEach(o => {
+    const A = IV_ART[o.art];
+    const f = (si, t) => `<span style="color:${ivFarbe(o, si, CF)}">${t}</span>`;   // Farbe wie im Diagramm
+    const txt = o.st.map(r => f(r.s, `${A.z[String(r.s)]} ${fmt(r.a, 2)} – ${fmt(r.b, 2)} s`)).join(" &nbsp;·&nbsp; ");
+    html += `<tr class="iv"><td><span class="badge iv2">${f(1, A.z["1"])}${f(-1, A.z["-1"])}</span></td>`
+      + `<td>${o.p.sym(o.c)}(t)</td>`
+      + `<td colspan="${cols.length + 1}" style="text-align:left;white-space:normal">${A.name}: ${txt}</td></tr>`;
+  });
   html += "</tbody></table>";
-  if (!rows.length && !(state.interval && (state.show.fl.v || state.show.fl.a))) html = `<div class="note">Tippe in ein Diagramm, um eine Stelle zu setzen.</div>`;
+  if (!rows.length && !ivL.length && !(state.interval && (state.show.fl.v || state.show.fl.a))) html = `<div class="note">Tippe in ein Diagramm, um eine Stelle zu setzen.</div>`;
   el.innerHTML = html;
   readoutHoehe();
 }
 function readoutHoehe() {
   const el = $("readout"), tb = el.querySelector("tbody");
   el.style.maxHeight = "";
+  if (el.hidden) return;                 // ausgeblendet misst offsetHeight nur Nullen
   if (!tb || tb.rows.length <= 4) return;
   let h = (el.querySelector("thead") || { offsetHeight: 0 }).offsetHeight;
   for (let i = 0; i < 4; i++) h += tb.rows[i].offsetHeight;
@@ -1654,7 +2269,7 @@ const endDrag = () => {
   if (drag && drag.kind === "ziel") {
     const z = zielAus(drag.pts);
     drag = null;
-    if (z) { state.ziel = z; state.zeichnen = false; }
+    if (z) { state.ziel = zielPruefen(z); state.zeichnen = false; }
     updateUI(); requestDraw();
     return;
   }
@@ -1670,11 +2285,19 @@ plots.addEventListener("pointerup", endDrag);
 plots.addEventListener("pointercancel", endDrag);
 
 // ---------- Abspielen ----------
-let playStart = 0, playFrom = 0, rafPlay = 0;
+/* Der Knopf traegt nur sein Zeichen und wird zur Pause, solange es laeuft. */
+function playKnopf(laeuft) {
+  const b = $("play");
+  b.textContent = laeuft ? "⏸" : "▶";
+  b.title = laeuft ? "Pause" : "Abspielen: die Bewegung noch einmal ablaufen lassen";
+  b.setAttribute("aria-label", laeuft ? "Pause" : "Abspielen");
+}
+let playStart = 0, playFrom = 0, rafPlay = 0, playHalt = null;   // playHalt: wo die Pause stehenblieb
 function stopPlay() {
   if (!state.playing) return;
   state.playing = false; cancelAnimationFrame(rafPlay);
-  $("play").textContent = "▶ Abspielen";
+  playHalt = state.cursor;
+  playKnopf(false);
 }
 function playLoop(now) {
   if (!state.playing || !D) return;
@@ -1686,9 +2309,13 @@ function playLoop(now) {
 }
 $("play").addEventListener("click", () => {
   if (!D) return;
-  if (state.playing) { stopPlay(); updateUI(); return; }
-  state.playing = true; playFrom = 0; playStart = performance.now();
-  $("play").textContent = "■ Stopp";
+  if (state.playing) { stopPlay(); updateUI(); return; }      // Pause
+  /* Weiter, wo die Pause stehenblieb. Wurde inzwischen eine Stelle angetippt oder war das
+     Ende erreicht, laeuft es wieder von vorn. */
+  const weiter = playHalt != null && state.cursor === playHalt && playHalt < D.T - 1e-6;
+  playFrom = weiter ? playHalt : 0;
+  state.playing = true; playStart = performance.now();
+  playKnopf(true);
   rafPlay = requestAnimationFrame(playLoop);
 });
 $("speed").addEventListener("change", e => { state.speed = parseFloat(e.target.value); });
@@ -1707,9 +2334,11 @@ function updateUI() {
   setPressed("m1d", state.mode === "1d"); setPressed("m2d", state.mode === "2d");
   app.classList.toggle("mode-1d", state.mode === "1d"); app.classList.toggle("mode-2d", state.mode === "2d");
   app.classList.toggle("lane", state.mode === "1d" && state.allVec);
+  document.documentElement.style.setProperty("--split", state.split + "%");
   app.classList.toggle("senk", istSenk() && !battleAn());
   app.classList.toggle("battle", battleAn());
   app.classList.toggle("spiel", spielAn());
+  app.classList.toggle("padHinten", padHinten() && !battleAn());
   $("achsSeg").hidden = state.mode !== "1d" || battleAn();
   $("spielSeg").hidden = state.mode !== "1d";
   document.querySelectorAll("#spielSeg button").forEach(b =>
@@ -1720,7 +2349,10 @@ function updateUI() {
   $("btStart").textContent = (BT.phase === "count" || BT.phase === "lauf") ? "■ Abbrechen" : "▶ Countdown";
   $("zielMal").setAttribute("aria-pressed", state.zeichnen ? "true" : "false");
   $("zielWeg").disabled = !state.ziel;
-  $("zielT").value = String(state.zielT);
+  const frei = state.zielFrei || ZIELZEITEN.indexOf(state.zielT) < 0;
+  $("zielT").value = frei ? "frei" : String(state.zielT);
+  $("zielTFrei").hidden = !frei;
+  if (document.activeElement !== $("zielTFrei")) $("zielTFrei").value = String(state.zielT);
   document.querySelectorAll("#zielTypSeg button").forEach(b => {
     b.setAttribute("aria-pressed", b.dataset.zt === state.zielTyp ? "true" : "false");
     b.textContent = (b.dataset.zt === "x" ? sym1d() : b.dataset.zt) + "(t)";
@@ -1731,6 +2363,9 @@ function updateUI() {
   setPressed("tStellen", state.show.stellen);
   setPressed("dX", state.dia.x); setPressed("dV", state.dia.v); setPressed("dA", state.dia.a);
   setPressed("tVec", state.allVec);
+  setPressed("tTab", state.tab);
+  /* Im Ziel- und Battle-Modus steht an derselben Stelle das Ergebnis - das bleibt immer da. */
+  $("readout").hidden = !state.tab && !spielAn();
   setPressed("toolStelle", state.tool === "stelle"); setPressed("toolIv", state.tool === "intervall");
   $("pin").disabled = state.cursor == null || !D || state.pins.length >= 8;
   $("undo").disabled = !state.prev;
@@ -1739,7 +2374,7 @@ function updateUI() {
     : istSenk()
     ? "Finger senkrecht bewegen."
     : state.mode === "1d"
-      ? "Finger auflegen und bewegen. Aufgezeichnet wird, solange der Finger aufliegt (nur die waagerechte Bewegung zählt)."
+      ? "Finger auflegen und waagerecht bewegen – aufgezeichnet wird, solange er aufliegt."
       : "Finger auflegen und bewegen. Aufgezeichnet wird, solange der Finger aufliegt.";
   updateStatus(); renderReadout();
 }
@@ -1771,22 +2406,46 @@ document.querySelectorAll("#spielSeg button").forEach(b => b.addEventListener("c
 document.querySelectorAll("#zielTypSeg button").forEach(b => b.addEventListener("click", () => {
   if (state.zielTyp === b.dataset.zt) return;
   state.zielTyp = b.dataset.zt;
-  state.ziel = null; state.zeichnen = true;        // ein Ziel gilt immer fuer ein Diagramm
+  state.ziel = null; state.zielNote = ""; state.zeichnen = true;   // ein Ziel gilt fuer ein Diagramm
   if (!state.dia[state.zielTyp]) state.dia[state.zielTyp] = true;
   updateUI(); requestDraw();
 }));
-$("zielT").addEventListener("change", e => {
-  state.zielT = parseFloat(e.target.value);
-  state.ziel = null; state.zeichnen = true;        // die Kurve haengt an der Dauer
+const ZIELZEITEN = [5, 8, 10, 15, 20, 30];
+/* Die Zielkurve haengt an der Dauer - wird sie geaendert, faengt man neu an. */
+function zielDauer(v) {
+  state.zielT = clamp(Math.round(v * 10) / 10, 1, 300);
+  state.ziel = null; state.zielNote = ""; state.zeichnen = true;
   updateUI(); requestDraw();
+}
+$("zielT").addEventListener("change", e => {
+  if (e.target.value === "frei") { state.zielFrei = true; zielDauer(state.zielT); return; }
+  state.zielFrei = false; zielDauer(parseFloat(e.target.value));
+});
+$("zielTFrei").addEventListener("change", e => {
+  const v = parseFloat(String(e.target.value).replace(",", "."));
+  if (!(v >= 1 && v <= 300)) { e.target.value = String(state.zielT); return; }
+  state.zielFrei = true; zielDauer(v);
 });
 $("zielMal").addEventListener("click", () => {
   state.zeichnen = !state.zeichnen;
-  if (state.zeichnen) { state.ziel = null; btStopp(); }
+  if (state.zeichnen) { state.ziel = null; state.zielNote = ""; btStopp(); }
   updateUI(); requestDraw();
 });
 $("zielWeg").addEventListener("click", () => {
-  state.ziel = null; state.zeichnen = true; BT.erg = null;
+  state.ziel = null; state.zielNote = ""; state.zeichnen = true; BT.erg = null;
+  updateUI(); requestDraw();
+});
+/* Alles leeren: Aufnahme und Zielkurve. Die vorherige Aufnahme bleibt unter
+   "Vorherige" erreichbar, falls der Knopf aus Versehen getroffen wurde. */
+$("reset").addEventListener("click", () => {
+  stopPlay(); btStopp();
+  state.prev = { raw: state.raw, sample: state.sample, cursor: state.cursor,
+                 pins: state.pins, interval: state.interval, mode: state.mode };
+  state.raw = []; state.sample = false; D = null;
+  state.cursor = null; state.pins = []; state.interval = null;
+  state.ziel = null; state.zielNote = ""; state.zeichnen = spielAn();
+  BT.raw = { L: [], R: [] }; BT.D = { L: null, R: null }; BT.erg = null;
+  $("hint").hidden = false;
   updateUI(); requestDraw();
 });
 $("btStart").addEventListener("click", () => {
@@ -1807,6 +2466,7 @@ $("smooth").addEventListener("input", e => {
 }));
 $("tStellen").addEventListener("click", () => { state.show.stellen = !state.show.stellen; updateUI(); requestDraw(); });
 $("tVec").addEventListener("click", () => { state.allVec = !state.allVec; updateUI(); requestDraw(); });
+$("tTab").addEventListener("click", () => { state.tab = !state.tab; updateUI(); requestDraw(); });
 $("strobe").addEventListener("change", e => { state.strobe = parseFloat(e.target.value); requestDraw(); });
 $("vecSel").addEventListener("change", e => { state.vecSel = e.target.value; if (!state.allVec) state.allVec = true; updateUI(); requestDraw(); });
 $("vecScale").addEventListener("change", e => { state.vecScale = parseFloat(e.target.value); requestDraw(); });
@@ -1829,6 +2489,19 @@ $("undo").addEventListener("click", () => {
   state.raw = p.raw; state.sample = p.sample; state.cursor = p.cursor; state.pins = p.pins; state.interval = p.interval;
   state.prev = cur;
   process(); updateUI(); requestDraw();
+});
+/* Das Feld wechselt die Seite: Die Buehne muss erst umbrechen, danach misst die
+   Beispielaufnahme neu - sie richtet sich nach der Laenge des Feldes. */
+$("padPos").addEventListener("change", e => {
+  const v = e.target.value;
+  if (PADPOS.indexOf(v) < 0) { e.target.value = state.padPos; return; }
+  state.padPos = v;
+  try { localStorage.setItem("bwd-padpos", v); } catch (err) {}
+  updateUI();
+  requestAnimationFrame(() => {
+    if (state.sample) makeSample(); else process();
+    updateUI(); draw();
+  });
 });
 $("ppc").addEventListener("change", e => {
   const v = parseFloat(String(e.target.value).replace(",", "."));
@@ -1899,15 +2572,17 @@ function zustand() {
   const r3 = v => Math.round(v * 1000) / 1000;
   return {
     mode: state.mode, comp: state.comp, achse: state.achse, sigma: state.sigma,
-    show: { stellen: state.show.stellen, tang: { x: state.show.tang.x, v: state.show.tang.v }, fl: { v: state.show.fl.v, a: state.show.fl.a } },
+    show: { stellen: state.show.stellen, tang: { x: state.show.tang.x, v: state.show.tang.v }, fl: { v: state.show.fl.v, a: state.show.fl.a },
+            mon: { x: state.show.mon.x, v: state.show.mon.v }, kru: { x: state.show.kru.x }, vz: { v: state.show.vz.v, a: state.show.vz.a } },
     dia: { x: state.dia.x, v: state.dia.v, a: state.dia.a },
     tool: state.tool, sample: state.sample,
     raw: state.raw.map(p => ({ t: r3(p.t), x: r3(p.x), y: r3(p.y) })),
     cursor: state.cursor, pins: state.pins.slice(),
     interval: state.interval ? state.interval.slice() : null,
-    ppc: state.ppc, strobe: state.strobe, allVec: state.allVec,
+    ppc: state.ppc, strobe: state.strobe, allVec: state.allVec, tab: state.tab,
     vecSel: state.vecSel, vecScale: state.vecScale, fs: state.fs,
-    spiel: state.spiel, zielTyp: state.zielTyp, zielT: state.zielT,
+    spiel: state.spiel, zielTyp: state.zielTyp, zielT: state.zielT, zielFrei: !!state.zielFrei,
+    split: state.split, padPos: state.padPos,
     /* die Zielkurve nur in Zehntelsekunden: auf dem Rechenraster waeren es bei 30 s
        dreitausend Zahlen - zu viel fuer den QR-Code beim Teilen */
     ziel: state.ziel ? { typ: state.ziel.typ, T: state.ziel.T, tol: r3(state.ziel.tol), dt: 0.1,
@@ -1938,6 +2613,9 @@ function uebernimm(d) {
       stellen: s.stellen !== false,
       tang: s.tang ? { x: !!s.tang.x, v: !!s.tang.v } : { x: s.tangenten !== false, v: s.tangenten !== false },
       fl: s.fl ? { v: !!s.fl.v, a: !!s.fl.a } : { v: !!s.flaechen, a: !!s.flaechen },
+      mon: { x: !!(s.mon && s.mon.x), v: !!(s.mon && s.mon.v) },
+      kru: { x: !!(s.kru && s.kru.x) },
+      vz: { v: !!(s.vz && s.vz.v), a: !!(s.vz && s.vz.a) },
     };
   }
   if (d.dia) state.dia = { x: !!d.dia.x, v: !!d.dia.v, a: !!d.dia.a };   /* auch alle aus ist erlaubt */
@@ -1945,6 +2623,9 @@ function uebernimm(d) {
   if (d.spiel === "aus" || d.spiel === "ziel" || d.spiel === "battle") state.spiel = d.spiel;
   if (d.zielTyp === "x" || d.zielTyp === "v" || d.zielTyp === "a") state.zielTyp = d.zielTyp;
   if (typeof d.zielT === "number" && d.zielT > 0) state.zielT = d.zielT;
+  state.zielFrei = !!d.zielFrei;
+  if (typeof d.split === "number" && d.split >= 15 && d.split <= 85) state.split = d.split;
+  if (PADPOS.indexOf(d.padPos) >= 0) state.padPos = d.padPos;
   if (d.ziel && Array.isArray(d.ziel.v) && d.ziel.v.length > 2) {
     const typ = d.ziel.typ || "x", T = +d.ziel.T || state.zielT;
     const v = zielFein(d.ziel.v.map(Number), +d.ziel.dt || DT, T);
@@ -1960,6 +2641,7 @@ function uebernimm(d) {
   if (typeof d.vecScale === "number") state.vecScale = d.vecScale;
   if (typeof d.fs === "number") setzeFs(d.fs);
   state.allVec = !!d.allVec;
+  state.tab = !!d.tab;
   if (Array.isArray(d.raw) && d.raw.length > 1) {
     state.raw = d.raw.map(p => ({ t: +p.t || 0, x: +p.x || 0, y: +p.y || 0 }));
     state.sample = !!d.sample;
@@ -1973,6 +2655,7 @@ function uebernimm(d) {
   $("smooth").value = state.sigma;
   $("smoothOut").textContent = state.sigma === 0 ? "aus" : state.sigma + " ms";
   $("ppc").value = state.ppc;
+  $("padPos").value = state.padPos;
   $("strobe").value = String(state.strobe);
   $("vecSel").value = state.vecSel;
   $("vecScale").value = String(state.vecScale);
