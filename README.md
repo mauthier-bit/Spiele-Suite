@@ -12,7 +12,7 @@ Bewegungserkennung ihr Modell beim Start nachlädt.
 
 | Spiel | Jahrgang | Thema | Spielform |
 |---|---|---|---|
-| [Memory](memory.html) | 5 – 13 | 73 Kartensätze: Darstellungen verknüpfen | Paare aufdecken, 1 – 4 Spieler |
+| [Memory](memory.html) | 5 – 13 | 75 Kartensätze: Darstellungen verknüpfen | Paare aufdecken, 1 – 4 Spieler |
 | [Bruno](Bruno.html) | 6 (ab 7 zur Wiederholung) | Brüche und ihre Darstellungen | Kartenspiel, zu zweit oder gegen den Computer |
 | [D-Uno](D-Uno.html) | 5 – 7 | Distributivgesetz, Aus­klammern und Aus­multiplizieren | Kartenspiel, zu zweit oder gegen den Computer |
 | [Termino](Termino.html) | 7 – 10 | gleichwertige Terme | Domino, gegeneinander oder kooperativ |

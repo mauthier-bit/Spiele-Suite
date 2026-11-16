@@ -866,11 +866,16 @@ S({fach:"Mathematik", stufe:5, gebiet:"Zahlen", titel:"Rechnen mit ganzen Zahlen
 const LAENGE=[["km",1000],["m",1],["dm",0.1],["cm",0.01],["mm",0.001]];
 const MASSE=[["t",1000],["kg",1],["g",0.001],["mg",0.000001]];
 const ZEIT=[["h",3600],["min",60],["s",1]];
+/* Flächen steigen je Stufe um den Faktor 100, Raummaße um 1000. */
+const FLAECHE=[["km²",1000000],["ha",10000],["a",100],["m²",1],["dm²",0.01],["cm²",0.0001],["mm²",0.000001]];
+const VOLUMEN=[["m³",1000],["dm³",1],["cm³",0.001],["mm³",0.000001]];
+const HOHL=[["hl",100],["l",1],["ml",0.001]];
+const GROESSENTAB={ l:LAENGE, m:MASSE, t:ZEIT, f:FLAECHE, v:VOLUMEN, h:HOHL };
 S({fach:"Mathematik", stufe:5, gebiet:"Größen", titel:"Größen umrechnen",
-  kurz:"2,5 km gehört zu 2500 m", a:"Größe", b:"gleiche Größe", max:20,
+  kurz:"2,5 km gehört zu 2500 m, 3 m² zu 300 dm²", a:"Größe", b:"gleiche Größe", max:24,
   make:(n)=>build(n,()=>{
-    const dim=pick(["l","m","t"]);
-    const tab = dim==="l"?LAENGE : dim==="m"?MASSE : ZEIT;
+    const dim=pick(["l","m","t","f","v","h"]);
+    const tab=GROESSENTAB[dim];
     const i=ri(0,tab.length-2), j=ri(i+1,tab.length-1);
     if(tab[i][1]/tab[j][1]>10000) return null;
     const w = dim==="t" ? pick([0.5,1,1.5,2,2.5,3,4]) : pick([1,1.5,2,2.5,3,4,5,7.5,12,25,0.5,0.25]);
@@ -1564,18 +1569,38 @@ S({fach:"Physik", stufe:7, gebiet:"Elektrizität", titel:"Magnete und Ladungen",
     {key:"m10", a:tx("geschlossener Stromkreis","sm"), b:tx("nur dann fließt Strom","sm"), info:"eine Lücke unterbricht den Strom"}
   ])});
 
-S({fach:"Physik", stufe:7, gebiet:"Mechanik", titel:"Dichte von Stoffen",
-  kurz:"Stoff und seine Dichte in g/cm³", a:"Stoff oder Formel", b:"Dichte", max:9,
+S({fach:"Physik", stufe:7, gebiet:"Mechanik", titel:"Geschwindigkeiten umrechnen",
+  kurz:"10 m/s gehört zu 36 km/h", a:"Tempo in m/s", b:"dasselbe Tempo in km/h", max:12,
   make:liste([
-    {key:"r0", a:tx("Dichte ρ","lg"), b:tx("ρ = "+frac("m","V"),"lg"), info:"Masse je Volumen"},
-    {key:"r1", a:tx("Wasser","sm"), b:tx("1,0 "+frac("g","cm³"),"sm"), info:"1 Liter Wasser wiegt 1 kg"},
-    {key:"r2", a:tx("Eisen","sm"), b:tx("7,9 "+frac("g","cm³"),"sm"), info:"Stahl liegt knapp darunter"},
-    {key:"r3", a:tx("Aluminium","sm"), b:tx("2,7 "+frac("g","cm³"),"sm"), info:"Leichtmetall"},
-    {key:"r4", a:tx("Gold","sm"), b:tx("19,3 "+frac("g","cm³"),"sm"), info:"eines der schwersten Alltagsmetalle"},
-    {key:"r5", a:tx("Blei","sm"), b:tx("11,3 "+frac("g","cm³"),"sm"), info:"deshalb als Abschirmung beliebt"},
-    {key:"r6", a:tx("Kupfer","sm"), b:tx("8,9 "+frac("g","cm³"),"sm"), info:"typisches Leitermaterial"},
-    {key:"r7", a:tx("Fichtenholz","sm"), b:tx("0,5 "+frac("g","cm³"),"sm"), info:"schwimmt auf Wasser"},
-    {key:"r8", a:tx("Luft","sm"), b:tx("0,0013 "+frac("g","cm³"),"sm"), info:"rund 1,3 Gramm je Liter"}
+    {key:"v0", a:tx("0,5 "+frac("m","s"),"sm"), b:tx("1,8 "+frac("km","h"),"sm"), info:"Schritttempo eines Kleinkinds"},
+    {key:"v1", a:tx("1 "+frac("m","s"),"sm"), b:tx("3,6 "+frac("km","h"),"sm"), info:"1 m/s sind genau 3,6 km/h"},
+    {key:"v2", a:tx("2 "+frac("m","s"),"sm"), b:tx("7,2 "+frac("km","h"),"sm"), info:"zügiges Gehen"},
+    {key:"v3", a:tx("2,5 "+frac("m","s"),"sm"), b:tx("9 "+frac("km","h"),"sm"), info:"Dauerlauf"},
+    {key:"v4", a:tx("5 "+frac("m","s"),"sm"), b:tx("18 "+frac("km","h"),"sm"), info:"flottes Radfahren"},
+    {key:"v5", a:tx("10 "+frac("m","s"),"sm"), b:tx("36 "+frac("km","h"),"sm"), info:"Spitzensprinter"},
+    {key:"v6", a:tx("15 "+frac("m","s"),"sm"), b:tx("54 "+frac("km","h"),"sm"), info:"Stadtverkehr"},
+    {key:"v7", a:tx("20 "+frac("m","s"),"sm"), b:tx("72 "+frac("km","h"),"sm"), info:"Landstraße"},
+    {key:"v8", a:tx("25 "+frac("m","s"),"sm"), b:tx("90 "+frac("km","h"),"sm"), info:"Schnellstraße"},
+    {key:"v9", a:tx("30 "+frac("m","s"),"sm"), b:tx("108 "+frac("km","h"),"sm"), info:"Autobahn"},
+    {key:"v10", a:tx("50 "+frac("m","s"),"sm"), b:tx("180 "+frac("km","h"),"sm"), info:"ICE-Tempo"},
+    {key:"v11", a:tx("100 "+frac("m","s"),"sm"), b:tx("360 "+frac("km","h"),"sm"), info:"Sturmböe im Orkan"}
+  ])});
+
+S({fach:"Physik", stufe:7, gebiet:"Mechanik", titel:"Dichte: Einheiten umrechnen",
+  kurz:"1 g/cm³ gehört zu 1000 kg/m³", a:"Dichte in g/cm³", b:"dieselbe Dichte in kg/m³", max:12,
+  make:liste([
+    {key:"r0", a:tx("1 "+frac("g","cm³"),"sm"), b:tx("1000 "+frac("kg","m³"),"sm"), info:"Wasser"},
+    {key:"r1", a:tx("0,5 "+frac("g","cm³"),"sm"), b:tx("500 "+frac("kg","m³"),"sm"), info:"Fichtenholz – schwimmt auf Wasser"},
+    {key:"r2", a:tx("0,92 "+frac("g","cm³"),"sm"), b:tx("920 "+frac("kg","m³"),"sm"), info:"Eis – deshalb schwimmt es"},
+    {key:"r3", a:tx("1,2 "+frac("g","cm³"),"sm"), b:tx("1200 "+frac("kg","m³"),"sm"), info:"Beton ist schwerer, PVC liegt hier"},
+    {key:"r4", a:tx("2,5 "+frac("g","cm³"),"sm"), b:tx("2500 "+frac("kg","m³"),"sm"), info:"Glas"},
+    {key:"r5", a:tx("2,7 "+frac("g","cm³"),"sm"), b:tx("2700 "+frac("kg","m³"),"sm"), info:"Aluminium, ein Leichtmetall"},
+    {key:"r6", a:tx("7,9 "+frac("g","cm³"),"sm"), b:tx("7900 "+frac("kg","m³"),"sm"), info:"Eisen"},
+    {key:"r7", a:tx("8,9 "+frac("g","cm³"),"sm"), b:tx("8900 "+frac("kg","m³"),"sm"), info:"Kupfer"},
+    {key:"r8", a:tx("11,3 "+frac("g","cm³"),"sm"), b:tx("11 300 "+frac("kg","m³"),"sm"), info:"Blei – deshalb als Abschirmung beliebt"},
+    {key:"r9", a:tx("13,6 "+frac("g","cm³"),"sm"), b:tx("13 600 "+frac("kg","m³"),"sm"), info:"Quecksilber"},
+    {key:"r10", a:tx("19,3 "+frac("g","cm³"),"sm"), b:tx("19 300 "+frac("kg","m³"),"sm"), info:"Gold"},
+    {key:"r11", a:tx("0,0013 "+frac("g","cm³"),"sm"), b:tx("1,3 "+frac("kg","m³"),"sm"), info:"Luft – rund 1,3 Gramm je Liter"}
   ])});
 
 S({fach:"Physik", stufe:8, gebiet:"Elektrizität", titel:"Schaltzeichen",
@@ -1609,6 +1634,25 @@ S({fach:"Physik", stufe:8, gebiet:"Elektrizität", titel:"Größen und ihre Einh
     {key:"e10", a:tx("Ladung Q","sm"), b:tx("Coulomb (C)","sm"), info:"1 C = 1 A · s"},
     {key:"e11", a:tx("Dichte ρ","sm"), b:tx("Kilogramm je m³ (kg/m³)","sm"), info:"auch g/cm³ üblich"},
     {key:"e12", a:tx("Frequenz f","sm"), b:tx("Hertz (Hz)","sm"), info:"Schwingungen je Sekunde"}
+  ])});
+
+S({fach:"Physik", stufe:8, gebiet:"Elektrizität", titel:"Vorsätze: milli, kilo und Co.",
+  kurz:"2,5 mV gehört zu 0,0025 V", a:"mit Vorsatz", b:"in der Grundeinheit", max:14,
+  make:liste([
+    {key:"vs0", a:tx("2,5 mV","sm"), b:tx("0,0025 V","sm"), info:"milli heißt ein Tausendstel"},
+    {key:"vs1", a:tx("12 mV","sm"), b:tx("0,012 V","sm"), info:"typische Thermospannung"},
+    {key:"vs2", a:tx("1,5 kV","sm"), b:tx("1500 V","sm"), info:"kilo heißt tausend"},
+    {key:"vs3", a:tx("0,5 MV","sm"), b:tx("500 000 V","sm"), info:"Hochspannungsleitung"},
+    {key:"vs4", a:tx("250 mA","sm"), b:tx("0,25 A","sm"), info:"so viel zieht eine helle LED-Lampe"},
+    {key:"vs5", a:tx("20 mA","sm"), b:tx("0,02 A","sm"), info:"schon gefährlich für den Menschen"},
+    {key:"vs6", a:tx("5 kA","sm"), b:tx("5000 A","sm"), info:"Blitzstrom"},
+    {key:"vs7", a:tx("2,2 kΩ","sm"), b:tx("2200 Ω","sm"), info:"gängiger Vorwiderstand"},
+    {key:"vs8", a:tx("470 kΩ","sm"), b:tx("470 000 Ω","sm"), info:"Farbringe gelb-violett-gelb"},
+    {key:"vs9", a:tx("1 MΩ","sm"), b:tx("1 000 000 Ω","sm"), info:"mega heißt eine Million"},
+    {key:"vs10", a:tx("3 kW","sm"), b:tx("3000 W","sm"), info:"Wasserkocher"},
+    {key:"vs11", a:tx("150 mW","sm"), b:tx("0,15 W","sm"), info:"Leuchtdiode"},
+    {key:"vs12", a:tx("20 ms","sm"), b:tx("0,02 s","sm"), info:"eine Periode bei 50 Hz"},
+    {key:"vs13", a:tx("500 µs","sm"), b:tx("0,0005 s","sm"), info:"mikro heißt ein Millionstel"}
   ])});
 
 S({fach:"Physik", stufe:8, gebiet:"Elektrizität", titel:"Ohm'sches Gesetz rechnen",
