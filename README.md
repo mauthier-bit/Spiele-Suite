@@ -1,6 +1,6 @@
 # Spiele-Suite – Mathematik & Physik
 
-Einundzwanzig Unterrichtsspiele für das iPad, zusammengefasst auf einer Startseite.
+Zweiundzwanzig Unterrichtsspiele für das iPad, zusammengefasst auf einer Startseite.
 Alle Spiele sind **einzelne HTML-Dateien ohne externe Abhängigkeiten**: kein Server,
 keine Anmeldung, keine Internetverbindung nötig. Einmal geladen, laufen sie offline.
 Einzige Ausnahme ist **MotionTrace**: Es braucht Kamera und Internet, weil die
@@ -31,6 +31,7 @@ Bewegungserkennung ihr Modell beim Start nachlädt.
 | [Breakout: Radioaktivität](Breakout_Radioaktivitaet.html) | 10 | Kernphysik: Strahlung, Zerfallsgesetz, Massendefekt, Dosis | Breakout, allein bis Kleingruppe |
 | [Das Lügen-Labor](luegen-labor.html) | 6 | Diagramm-Tricks entlarven (Teil 1) | Breakout, allein bis Kleingruppe |
 | [Die Diagramm-Werkstatt](luegen-werkstatt.html) | 6 | selbst täuschen und entlarven (Teil 2) | Werkstatt, Gruppen + Vorführung |
+| [Superhirn](superhirn.html) | ab 5 | Mastermind: logisches Schließen, Zählprinzip | Rätsel, allein, zu zweit oder Klasse |
 | [Schiffe versenken](schiffe-versenken-koordinaten.html) | 5 | Koordinaten setzen und ablesen | Duell zu zweit oder gegen den Computer |
 | [Raumschiffe versenken](raumschiffe-versenken.html) | Oberstufe | räumliches Koordinatensystem, Punkte und Vektoren | Duell zu zweit oder gegen den Computer |
 
